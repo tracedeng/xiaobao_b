@@ -1,0 +1,8 @@
+Traceback (most recent call last):
+  File "PeriodReport.py", line 89, in <module>
+    events = epoll.poll(timeout)
+IOError: [Errno 4] Interrupted system call
+Traceback (most recent call last):
+  File "PeriodReport.py", line 89, in <module>
+    events = epoll.poll(timeout)
+KeyboardInterrupt
