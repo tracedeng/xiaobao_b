@@ -16,6 +16,7 @@ use app\models\Consumption;
 use app\models\Fence;
 use app\models\Fixpara;
 use app\models\PetFood;
+use app\models\Sos;
 
 class GeoHash
 {
@@ -785,10 +786,65 @@ class HardwareController extends Controller
 			array_push($foods, array("section"=>$key, "foods"=>$value));
 		}
 		Yii::trace($foods, 'pet\queryFoods');
-	        return json_encode(array("errcode"=>0, "errmsg"=>"query pet foods succeed", "foods"=>$foods));
+	    return json_encode(array("errcode"=>0, "errmsg"=>"query pet foods succeed", "foods"=>$foods));
+
 		$para = PetFood::find()->asArray()->one();
 
 		return json_encode(array("errcode"=>0, "parameters"=>$para));
+	}
+
+	//每天可以发3次求救，发送求救间隔时间为1小时
+	public function querySOS($post)
+	{
+		$sos = Sos::findOne(['petId' => $post["petId"]]);
+		if($sos)
+		{
+			Yii::trace($sos->attributes, 'hardware\operation');
+			$lastTime = new \DateTime($sos->lastTime);
+			$now = new \DateTime();
+			$before1Hour = $now->sub(new \DateInterval('PT1H'));
+
+			$times = $sos->times;
+			Yii::trace($times, 'hardware\operation');
+			Yii::trace($lastTime, 'hardware\operation');
+			Yii::trace($before1Hour, 'hardware\operation');
+			if(($times > 2) || ($lastTime > $before1Hour))
+			{
+				//不可发送SOS
+				return json_encode(array("errcode"=>0, "enable"=>0));
+			}
+		}
+
+		//可以发送SOS
+		return json_encode(array("errcode"=>0, "enable"=>1));
+	}
+
+	public function setSOS($post)
+	{
+		$sos = Sos::findOne(['petId' => $post["petId"]]);
+		if(null == $sos)
+		{
+			$sos = new Sos;
+			$sos->petId = $post["petId"];
+			$sos->times = 1;
+		}else{
+			//判断是否同一天
+			$now = date("Y-m-d");
+			$lastTime = substr($sos->lastTime, 0, 10);
+			Yii::trace($now, 'hardware\operation');
+			Yii::trace($lastTime, 'hardware\operation');
+			$sos->times = ($now == $lastTime) ? ($sos->times + 1) : 1;
+			//$sos->times += 1;
+		}
+		$sos->lastTime = "" . date("Y-m-d H:i:s");
+		Yii::trace($sos->attributes, 'hardware\operation');
+
+		if($sos->save())
+		{
+			return json_encode(array("errcode"=>0, "errmsg"=>"set sos succeed"));
+		}else{
+			return json_encode(array("errcode"=>20801, "errmsg"=>"set sos failed"));
+		}
 	}
 
 	public function manageGprsRawData($post)
@@ -831,7 +887,7 @@ class HardwareController extends Controller
 		$ripeData->positionGeo5 = substr($positionGeo9, 0, 5);
 		$ripeData->motionIndex = $motionIndex;
 		$ripeData->battery = $battery;
-		date_default_timezone_set('Asia/Shanghai');
+		//date_default_timezone_set('Asia/Shanghai');
 		$ripeData->time = "" . date("Y-m-d H:i:s");
 		Yii::trace($ripeData->attributes, 'hardware\rawdata');
 		if($ripeData->save())
@@ -916,12 +972,15 @@ class HardwareController extends Controller
 			switch($opcode)
 			{
 				case 0:
+					//绑定小宝
 					return $this->bindGprs($post);
 				case 1:
 					return $this->unbindGprs($post);
 				case 2:
+					//绑定前查找附近的小宝
 					return $this->gprsNearbyWhenBind($post);
 				case 10:
+					//宠物位置
 					return $this->petPosition($post);
 				case 11:
 					//附近的宠物
@@ -930,6 +989,7 @@ class HardwareController extends Controller
 					//附近的宠物
 					return $this->petsListNearbyOfPet($post);
 				case 13:
+					//宠物轨迹
 					return $this->petOrbit($post);
 				case 20:
 					//设置点子围栏信息
@@ -959,13 +1019,19 @@ class HardwareController extends Controller
 					//return $this->setFood($post);
 				case 50:
 					return $this->manageGprsRawData($post);
+				case 60:
+					//当前是否可以发送SOS 
+					return $this->querySOS($post);
+				case 61:
+					//发送SOS后更新
+					return $this->setSOS($post);
 				default:
 					//不支持的操作不回包
 					break;
 			}
 		}else{
 			Yii::trace($opcode, 'hardware\operation');
-			Yii::trace("adf", 'hardware\operation');
+			//Yii::trace("adf", 'hardware\operation');
 			if(50 == $opcode)
 			{
 				return $this->manageGprsRawData($post);

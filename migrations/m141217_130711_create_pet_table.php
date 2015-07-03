@@ -42,10 +42,11 @@ class m141217_130711_create_pet_table extends Migration
 			"info" => Schema::TYPE_TEXT . ' DEFAULT ""',
 			"time" => Schema::TYPE_DATETIME . ' NOT NULL',
 	    	"section" => Schema::TYPE_STRING . ' DEFAULT ""',
+			"image" => Schema::TYPE_STRING . ' DEFAULT ""',
 	    ], "DEFAULT CHARSET=utf8;");
 
 	    //插入宠物类型列表
-	    $this->insert("petkind", ['name' => '吉娃娃', 'info' => '吉娃娃(西班牙语：Chihuahueño，英语：Chihuahua)也译作奇瓦瓦、芝娃娃、奇娃娃、齐花花，属小型犬种里次小型，优雅、警惕、动作迅速，以匀称的体格和娇小的体型广受人们的喜爱。', 'time' => 'now()']);
+	    //$this->insert("petkind", ['name' => '吉娃娃', 'info' => '吉娃娃(西班牙语：Chihuahueño，英语：Chihuahua)也译作奇瓦瓦、芝娃娃、奇娃娃、齐花花，属小型犬种里次小型，优雅、警惕、动作迅速，以匀称的体格和娇小的体型广受人们的喜爱。', 'time' => 'now()']);
 
     }
 
