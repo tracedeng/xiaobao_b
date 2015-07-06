@@ -17,6 +17,7 @@ use app\models\Fence;
 use app\models\Fixpara;
 use app\models\PetFood;
 use app\models\Sos;
+use app\models\Seqno;
 
 class GeoHash
 {
@@ -221,6 +222,28 @@ class HardwareController extends Controller
 		return $this->canFetchPosition($petId, $userId);
 	}
 
+	//只有用户有一只宠物打开助养该用户就拥有助养标志
+	public function updateUserSponsor($userId)
+	{
+		$material = Material::find()->where(['id' => $userId])->one();
+		$pets = Pet::find()->where(['ownerId' => $userId, 'isDeleted' => 0, 'sponsorOpen' => 1])->select('sponsorOpen')->asArray()->all();
+
+		foreach($pets as $pet)
+		{
+			if($pet['sponsorOpen'] == 1)
+			{
+				//该用户还有宠物打开助养
+				$material->sponsor = 1;
+				$material->save();
+				return;
+			}
+		}
+		$material->sponsor = 0;
+		$material->save();
+
+		return;
+	}
+
 	public function bindGprs($post)
 	{
 		//TODO... 有效性检查，避免读 $post数据失败
@@ -246,6 +269,8 @@ class HardwareController extends Controller
 				Yii::trace("cancel binded gprs failed", 'hardware\bindGprs');
 				return json_encode(array("errcode"=>20602, "errmsg"=>"cancel binded gprs failed"));
 			}
+			//更新之前绑定设备宠物主人的助养标志
+			self::updateUserSponsor($pet->ownerId);
 		}
 		unset($pet);
 
@@ -261,8 +286,14 @@ class HardwareController extends Controller
 
 		if($pet->save())
 		{
+			//更新绑定设备用户的助养标志，必然是打开助养，没必要做检查
+			$material = $Material::find()->where(['id' => $userId])->one();
+			$material->sponsor = 1;
+			$material->save()
+			//self::updateUserSponsor($userId);
+
 			Yii::trace("bind gprs succeed", 'hardware\bindGprs');
-	        	return json_encode(array("errcode"=>0, "errmsg"=>"bind gprs succeed"));
+	        return json_encode(array("errcode"=>0, "errmsg"=>"bind gprs succeed"));
 	        	//return json_encode(array("errcode"=>0, "errmsg"=>"bind gprs succeed", "gprsId"=>$pet->gprsId));
 		}else{
 			Yii::trace($account->getErrors(), 'hardware\bindGprs');
@@ -293,12 +324,27 @@ class HardwareController extends Controller
 
 		if($pet->save())
 		{
+			//更新解除绑定设备用户的助养标志
+			self::updateUserSponsor($userId);
+
 			Yii::trace("unbind gprs succeed", 'hardware\unbindGprs');
-	        	return json_encode(array("errcode"=>0, "errmsg"=>"unbind gprs succeed", "gprsId"=>$hardware->gprsId));
+	        return json_encode(array("errcode"=>0, "errmsg"=>"unbind gprs succeed", "gprsId"=>$hardware->gprsId));
 		}else{
 			Yii::trace($account->getErrors(), 'hardware\unbindGprs');
 			return json_encode(array("errcode"=>20602, "errmsg"=>"call save failed when unbind gprs"));
 		}
+	}
+
+	public function queryGprs($post)
+	{
+		$seqno = Seqno::find()->where(["gprsId" => $post["gprsId"]])->one();
+		if($seqno && $seqno->enable)
+		{
+			//有效硬件序列号
+			return json_encode(array("errcode"=>0, "valid"=>1));
+		}
+		//无效
+		return json_encode(array("errcode"=>0, "valid"=>0));
 	}
 
 	public function petPosition($post)
@@ -800,18 +846,25 @@ class HardwareController extends Controller
 		if($sos)
 		{
 			Yii::trace($sos->attributes, 'hardware\operation');
-			$lastTime = new \DateTime($sos->lastTime);
-			$now = new \DateTime();
-			$before1Hour = $now->sub(new \DateInterval('PT1H'));
 
-			$times = $sos->times;
-			Yii::trace($times, 'hardware\operation');
-			Yii::trace($lastTime, 'hardware\operation');
-			Yii::trace($before1Hour, 'hardware\operation');
-			if(($times > 2) || ($lastTime > $before1Hour))
+			$now = date("Y-m-d");
+			$lastTime = substr($sos->lastTime, 0, 10);
+
+			if($now == $lastTime)
 			{
-				//不可发送SOS
-				return json_encode(array("errcode"=>0, "enable"=>0));
+				$lastTime = new \DateTime($sos->lastTime);
+				$now = new \DateTime();
+				$before1Hour = $now->sub(new \DateInterval('PT1H'));
+
+				$times = $sos->times;
+				Yii::trace($times, 'hardware\operation');
+				Yii::trace($lastTime, 'hardware\operation');
+				Yii::trace($before1Hour, 'hardware\operation');
+				if(($times > 2) || ($lastTime > $before1Hour))
+				{
+					//不可发送SOS
+					return json_encode(array("errcode"=>0, "enable"=>0));
+				}
 			}
 		}
 
@@ -979,6 +1032,9 @@ class HardwareController extends Controller
 				case 2:
 					//绑定前查找附近的小宝
 					return $this->gprsNearbyWhenBind($post);
+				case 3:
+					//检查小宝序列号有效
+					return $this->queryGprs($post);
 				case 10:
 					//宠物位置
 					return $this->petPosition($post);

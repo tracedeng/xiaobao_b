@@ -27,7 +27,7 @@ class Circle extends ActiveRecord
 	//一条朋友圈owner对应一条昵称
 	public function getMaterial()
 	{
-		return $this->hasOne(Material::className(), ['id' => 'ownerId'])->select('id, nickname, headImage, sex, location');
+		return $this->hasOne(Material::className(), ['id' => 'ownerId'])->select('id, nickname, headImage, sex, location, sponsor');
 	}
 
 	//生成4位随机验证码

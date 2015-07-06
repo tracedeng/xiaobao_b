@@ -245,7 +245,8 @@ class UserController extends Controller
 	{
 		//$post["who"] 是要查询的用户手机号
 		//$id = Account::findOne(['phoneNumber' => $post["who"]])->id;
-		$phoneNumberList = json_decode($post["phoneNumberList"], true);
+		$phoneNumbers = json_decode($post["phoneNumberList"], true);
+		Yii::trace($phoneNumbers, 'material\batchFetchWithPhoneNumber');
 		$ids = Account::find()->where(['phoneNumber' => $phoneNumbers])->select("id")->asArray()->all();
 		$ids = $this->filterSelectValue($ids, "id");
 		//$id = ($id == 0) ? Account::findOne(['phoneNumber' => $post["phoneNumber"]])->id : $id;

@@ -25,7 +25,7 @@ class Comment extends ActiveRecord
 			[['id', 'pid', 'circleId', 'time', 'reviewerId', 'revieweredId', 'content'], 'required', 'on' => 'add'],	//新增一条评论
 			[['id', 'circleId'], 'required', 'on' => 'delete'],		//删除一条评论
 
-			['pid', 'exist', 'on' => 'add'],		//新增一条评论
+			//['pid', 'exist', 'on' => 'add'],		//新增一条评论
 			[['id', 'circleId'], 'exist', 'targetAttribute' => ['id', 'circleId'], 'on' => 'delete'],		//删除一条评论
 		];
 	}

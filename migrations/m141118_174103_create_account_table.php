@@ -12,6 +12,7 @@ class m141118_174103_create_account_table extends Migration
 			"phoneNumber" => Schema::TYPE_STRING . ' NOT NULL',
 			"password" => Schema::TYPE_STRING,
 			"passwordMd5" => Schema::TYPE_STRING . ' NOT NULL',
+			"time" => Schema::TYPE_DATETIME . ' NOT NULL',
 	    ], "DEFAULT CHARSET=utf8;");
 
     }

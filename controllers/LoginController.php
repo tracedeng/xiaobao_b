@@ -111,6 +111,7 @@ class LoginController extends Controller
 	    //$post = json_decode(Yii::$app->request->getRawBody(), true);
 	    Yii::trace($post, 'login\register');
 	    $account->attributes = $post;
+ 	    $account->time = "" . date("Y-m-d H:i:s");
 	    Yii::trace($account->attributes, 'login\register');
 
 	    if($account->validate())
@@ -288,8 +289,9 @@ class LoginController extends Controller
 		    //step2: cache verifyCode, 60 second expire
 		    $account->cacheVerifyCode($verifyCode, 6000);
 		    //TODO... step3: send veirfy code according third party api
-			if(0 != $this->sendVCode1XinXi($verifyCode, $account->phoneNumber))
-		    	return json_encode(array("errcode"=>10103, "errmsg"=>"1xinxi send vcode failed"));
+			//测试先不短信下发
+			//if(0 != $this->sendVCode1XinXi($verifyCode, $account->phoneNumber))
+		    //	return json_encode(array("errcode"=>10103, "errmsg"=>"1xinxi send vcode failed"));
 
 		    //return verify code if debug
 		    if(YII_ENV_DEV)

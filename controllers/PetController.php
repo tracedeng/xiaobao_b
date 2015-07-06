@@ -644,7 +644,30 @@ class PetController extends Controller
 		}
 	}
 
-	//是否绑定小宝
+	//TODO... controller间公用的函数怎么共享
+	//只有用户有一只宠物打开助养该用户就拥有助养标志
+	public function updateUserSponsor($userId)
+	{
+		$material = Material::find()->where(['id' => $userId])->one();
+		$pets = Pet::find()->where(['ownerId' => $userId, 'isDeleted' => 0, 'sponsorOpen' => 1])->select('sponsorOpen')->asArray()->all();
+
+		foreach($pets as $pet)
+		{
+			if($pet['sponsorOpen'] == 1)
+			{
+				//该用户还有宠物打开助养
+				$material->sponsor = 1;
+				$material->save();
+				return;
+			}
+		}
+		$material->sponsor = 0;
+		$material->save();
+
+		return;
+	}
+
+	//绑定小宝则自动解绑，并更新助养标志
 	public function deleteAPet($post)
 	{
 		//TODO... 有效性检查，避免读 $post数据失败
@@ -659,11 +682,13 @@ class PetController extends Controller
 
 		$pet = Pet::findOne($id);
 		$pet->isDeleted = true;
+		$pet->isBindGprs = true;
 		Yii::trace($pet, 'pet\delete');
 		if($pet->save())
 		{
+			self::updateUserSponsor($ownerId);
 			Yii::trace("delete a pet succeed", 'pet\delete');
-	        	return json_encode(array("errcode"=>0, "errmsg"=>"delete a pet succeed", "isDeleted"=>$pet->isDeleted));
+	 		return json_encode(array("errcode"=>0, "errmsg"=>"delete a pet succeed", "isDeleted"=>$pet->isDeleted));
 		}else{
 			Yii::trace($account->getErrors(), 'pet\delete');
 			return json_encode(array("errcode"=>20602, "errmsg"=>"call save failed when delete a pet"));
@@ -821,11 +846,12 @@ class PetController extends Controller
 
 		$pet = Pet::findOne($id);
 		$pet->sponsorOpen = $post["sponsorOpen"];
-		Yii::trace($pet, 'pet\sponsorOpen');
+		Yii::trace($pet->attributes, 'pet\sponsorOpen');
 		if($pet->save())
 		{
+			self::updateUserSponsor($ownerId);
 			Yii::trace("modify sponsorOpen succeed", 'pet\sponsorOpen');
-	        	return json_encode(array("errcode"=>0, "errmsg"=>"modify sponsorOpen succeed", "sponsorOpen"=>$pet->sponsorOpen));
+	        return json_encode(array("errcode"=>0, "errmsg"=>"modify sponsorOpen succeed", "sponsorOpen"=>$pet->sponsorOpen));
 		}else{
 			Yii::trace($account->getErrors(), 'pet\sponsorOpen');
 			return json_encode(array("errcode"=>20602, "errmsg"=>"call save failed when modify sponsorOpen"));

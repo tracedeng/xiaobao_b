@@ -15,7 +15,7 @@ class m141217_130711_create_pet_table extends Migration
 			"birthday" => Schema::TYPE_STRING . ' DEFAULT ""',
 			"weight" => Schema::TYPE_FLOAT . ' DEFAULT 0',
 			"headImage" => Schema::TYPE_STRING . ' DEFAULT "default"',
-			"introduce" => Schema::TYPE_TEXT . ' DEFAULT ""',
+			"introduce" => Schema::TYPE_STRING . ' DEFAULT ""',
 			"ownerId" => Schema::TYPE_BIGINT . ' NOT NULL',
 			"time" => Schema::TYPE_DATETIME . ' NOT NULL',
 			"isDeleted" => Schema::TYPE_BOOLEAN . ' DEFAULT 0',
@@ -39,7 +39,7 @@ class m141217_130711_create_pet_table extends Migration
 	    $this->createTable("petkind", [
 	    	"id" => Schema::TYPE_BIGPK,
 			"name" => Schema::TYPE_STRING . ' NOT NULL',
-			"info" => Schema::TYPE_TEXT . ' DEFAULT ""',
+			"info" => Schema::TYPE_STRING . ' DEFAULT ""',
 			"time" => Schema::TYPE_DATETIME . ' NOT NULL',
 	    	"section" => Schema::TYPE_STRING . ' DEFAULT ""',
 			"image" => Schema::TYPE_STRING . ' DEFAULT ""',

@@ -12,8 +12,8 @@ class m150422_165338_create_pet_food_table extends Migration
 	    	"id" => Schema::TYPE_BIGPK,
 	    	"pid" => Schema::TYPE_BIGINT . ' DEFAULT 0',
 			"section" => Schema::TYPE_STRING . ' DEFAULT "#"',
-			"name" => Schema::TYPE_STRING . ' NOT NULL',
-			"info" => Schema::TYPE_TEXT . ' DEFAULT ""',
+			"name" => Schema::TYPE_STRING . ' DEFAULT ""',
+			"info" => Schema::TYPE_STRING . ' DEFAULT ""',
 			"scale" => Schema::TYPE_FLOAT . ' DEFAULT 1',
 			"time" => Schema::TYPE_DATETIME . ' NOT NULL',
 	    ], "DEFAULT CHARSET=utf8;");

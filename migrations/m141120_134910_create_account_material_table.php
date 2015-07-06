@@ -13,7 +13,7 @@ class m141120_134910_create_account_material_table extends Migration
 			"nickname" => Schema::TYPE_STRING . ' DEFAULT ""',
 			"sex" => Schema::TYPE_SMALLINT . ' default 2',
 			"age" => Schema::TYPE_SMALLINT . ' default 0',
-			"local" => Schema::TYPE_STRING,
+			"sponsor" => Schema::TYPE_SMALLINT . ' default 0',
 			"location" => Schema::TYPE_STRING . ' default ""',
 			"introduce" => Schema::TYPE_STRING . ' DEFAULT ""',
 			"headImage" => Schema::TYPE_STRING . ' default "default"',

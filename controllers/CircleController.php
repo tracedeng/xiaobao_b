@@ -188,11 +188,11 @@ class CircleController extends Controller
     public function materialOfId($id, array $materials)
     {
 	    if(0 == $id)
-		    return array("id"=>0, "nickname"=>"dummy", "headImage"=>"dummy");
+		    return array("id"=>0, "nickname"=>"dummy", "headImage"=>"dummy", "sex"=>0);
 	    foreach($materials as $material)
 	    {
 		    if($material["id"] == $id)
-			    return array("id"=>$id, "nickname"=>$material["nickname"], "headImage"=>$material["headImage"]);
+			    return array("id"=>$id, "nickname"=>$material["nickname"], "headImage"=>$material["headImage"], "sex"=>$material["sex"]);
 	    }
     }
 
@@ -274,8 +274,8 @@ class CircleController extends Controller
 
 		        if(!$relation->validate())
 		        {
-		                //非好友关系
-	    	        	Yii::trace($relation->getErrors(), 'circle\fetch');
+		        	//非好友关系
+	    	        Yii::trace($relation->getErrors(), 'circle\fetch');
 		        	return json_encode(array("errcode"=>10023, "errmsg"=>"not friends"));
 		        }
 		    	$condition = ['deleted'=>0, 'ownerId'=>$post["userId"], 'type'=>$post["type"]];
@@ -582,8 +582,8 @@ class CircleController extends Controller
    	    foreach($comments as &$comment)
    	    {
    	            $ids = array_merge($ids, array($comment["reviewerId"], $comment["revieweredId"]));
-		    Yii::trace($ids, 'circle\get');
-   	    	    $materials = Material::find()->select('id, nickname, headImage')->where(['id'=>$ids])->asArray()->all();
+		    	Yii::trace($ids, 'circle\get');
+   	    	    $materials = Material::find()->select('id, nickname, headImage, sex')->where(['id'=>$ids])->asArray()->all();
    	    	    $comment["reviewerId"] = $this->materialOfId($comment["reviewerId"], $materials);
    	    	    $comment["revieweredId"] = $this->materialOfId($comment["revieweredId"], $materials);
    	    }
@@ -621,23 +621,24 @@ class CircleController extends Controller
 	    Yii::trace($comment->attributes, 'circle\comment');
 	    if($comment->save())
 	    {
-	            Yii::trace("comment a cricle succeed", 'circle\comment');
+			Yii::trace("comment a cricle succeed", 'circle\comment');
 		    //累加评论次数
 		    $circle = Circle::find()->where(['id' => $comment->circleId])->one();
 		    $circle->setScenario('comment');
 		    $circle->commentCount++;
+	    	Yii::trace($circle->attributes, 'circle\comment');
 		    if(!$circle->save())
 		    {
 			    //即使失败也继续，评论次数以comment表为准
 			    Yii::trace("save comment counts failed", 'circle\comment');
 		    }
-		    $comment->reviewerId = Material::find()->select('id, nickname, headImage')->where(['id' => $comment->reviewerId])->asArray()->one();
+		    $comment->reviewerId = Material::find()->select('id, nickname, headImage, sex')->where(['id' => $comment->reviewerId])->asArray()->one();
 		    $comment->revieweredId = (0 == $comment->revieweredId) ? array('id' => 0, 'nickname' => 'dummy') : Material::find()->select('id, nickname')->where(['id' => $comment->revieweredId])->asArray()->one();
 		    
-	            return json_encode(array("errcode"=>0, "errmsg"=>"comment a circle succeed", "comment"=>$comment->attributes));
+			return json_encode(array("errcode"=>0, "errmsg"=>"comment a circle succeed", "comment"=>$comment->attributes));
 	    }else{
-	            Yii::trace($account->getErrors(), 'circle\comment');
-	            return json_encode(array("errcode"=>20602, "errmsg"=>"call save failed when comment a circle"));
+			Yii::trace($comment->getErrors(), 'circle\comment');
+			return json_encode(array("errcode"=>20602, "errmsg"=>"call save failed when comment a circle"));
 	    }
     }
 
@@ -660,28 +661,28 @@ class CircleController extends Controller
 		    {
 			    case 0:
 			    	//发帖
-				return $this->release($post);
+					return $this->release($post);
 			    case 1:
 			    	//按条件读取发布的帖子
 					return $this->fetch($post);
 			    case 10:
 			    	//删除
-				return $this->delete($post);
+					return $this->delete($post);
 			    case 11:
 			    	//点赞
-				return $this->thumb($post);
+					return $this->thumb($post);
 			    case 12:
 			    	//取消点赞
-				return $this->cancelThumb($post);
+					return $this->cancelThumb($post);
 			    case 20:
 			    	//拉取评论
-				return $this->fetchComment($post);
+					return $this->fetchComment($post);
 			    case 21:
 			    	//评论
-				return $this->addComment($post);
+					return $this->addComment($post);
 			    case 22:
 			    	//取消评论
-				return $this->cancelComment($post);
+					return $this->cancelComment($post);
 			    default:
 			    	//不支持的操作，不回包
 			    	break;

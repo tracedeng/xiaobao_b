@@ -14,7 +14,7 @@ class m141203_133237_create_circle_table extends Migration
 			"type" => Schema::TYPE_SMALLINT . ' NOT NULL',
 			"releaseTime" => Schema::TYPE_DATETIME . ' NOT NULL',
 			"detailText" => Schema::TYPE_TEXT . ' DEFAULT ""',
-			"location" => Schema::TYPE_STRING . ' default ""',
+			"location" => Schema::TYPE_STRING . ' default "火星"',
 			"detailImagesPath" => Schema::TYPE_STRING . ' DEFAULT ""',
 			"detailImagesCount" => Schema::TYPE_SMALLINT . ' DEFAULT 0',
 			"deleted" => Schema::TYPE_BOOLEAN . ' DEFAULT 0',

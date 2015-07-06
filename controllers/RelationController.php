@@ -37,6 +37,12 @@ class RelationController extends Controller
 				case 41:
 					//删除好友关系
 					return $this->deleteRelation($post);
+				case 42:
+					//判断是否是好友关系
+					return $this->queryRelation($post);
+				case 43:
+					//判断是否是好友关系
+					return $this->queryRelationById($post);
 				default:
 					//不支持的操作，不回包
 					break;
@@ -61,65 +67,6 @@ class RelationController extends Controller
 		}
  	}
 
-	/*public function query($post)
-	{
-		//$id = Account::findOne(['phoneNumber' => $post["phoneNumber"]])->id;
-		//Yii::trace('id=' . $id, 'pet\query');
-		$id = $post["who"];
-		$pets = $this->queryPets($id);
-		Yii::trace($pets, 'pet\query');
-		$sponsorPets = $this->querySponsorPets($id);
-		Yii::trace($sponsorPets, 'pet\query');
-
-		return json_encode(array("errcode"=>0, "errmsg"=>"query pet success", "pets"=>$pets, "sponsor"=>$sponsorPets));
-	}*/
-
-	//获取用户拥有的狗狗
-	/*public function queryPets($id)
-	{
-		return Pet::find()->where(['ownerId' => $id, 'isDeleted' => 0])->with('petKind')->asArray()->all();
-	}
-
-	public function canModifyMaterial($id, $ownerId)
-	{
-		$checkpet = new Pet;
-		$checkpet->setScenario("modify");
-		$checkpet->id = $id;
-		$checkpet->ownerId = $ownerId;
-		Yii::trace($checkpet->attributes, 'pet\checkModify');
-		if(!$checkpet->validate())
-		{
-			Yii::trace($checkpet->getErrors(), 'pet\nickname');
-			return false;
-		}
-		return true;
-	}*/
-
-	public function kind($post)
-	{
-		//TODO... 有效性检查，避免读 $post数据失败
-		/*$id = $post["petId"];
-		$ownerId = Account::findOne(['phoneNumber' => $post["phoneNumber"]])->id;
-
-		if(false == $this->canModifyMaterial($id, $ownerId))
-		{
-			Yii::trace("modify kind failed, user not own this pet", 'pet\kind');
-			return json_encode(array("errcode"=>20602, "errmsg"=>"modify kind failed"));
-		}
-
-		$pet = Pet::findOne($id);
-		$pet->kind = $post["kind"];
-		Yii::trace($pet->attributes, 'pet\kind');
-		if($pet->save())
-		{
-			Yii::trace("modify kind succeed", 'pet\kind');
-	        	return json_encode(array("errcode"=>0, "errmsg"=>"modify kind succeed", "kind"=>$pet->kind));
-		}else{
-			Yii::trace($account->getErrors(), 'pet\kind');
-			return json_encode(array("errcode"=>20602, "errmsg"=>"call save failed when modify kind"));
-		}*/
-	}
-
 	public function addRelation($post)
 	{
 		if(($post["phoneNumber"] != $post["phoneNumberA"]) && ($post["phoneNumber"] != $post["phoneNumberB"]))
@@ -141,7 +88,7 @@ class RelationController extends Controller
 			Yii::trace("add a relation succeed", 'relation\add');
 			return json_encode(array("errcode"=>0, "errmsg"=>"add a relation succeed", "relation"=>$relation->attributes));
 		}else{
-			Yii::trace($account->getErrors(), 'relation\add');
+			Yii::trace($relation->getErrors(), 'relation\add');
 			return json_encode(array("errcode"=>20602, "errmsg"=>"save file failed"));
 		}
 	}
@@ -168,15 +115,50 @@ class RelationController extends Controller
 			if($relation->delete())
 			{
 				Yii::trace("delete a relation succeed", 'relation\delete');
-	        		return json_encode(array("errcode"=>0, "errmsg"=>"delete a relation succeed", "relation"=>$relation->attributes));
+	        	return json_encode(array("errcode"=>0, "errmsg"=>"delete a relation succeed", "relation"=>$relation->attributes));
 			}else{
-				Yii::trace($account->getErrors(), 'relation\delete');
+				Yii::trace($relation->getErrors(), 'relation\delete');
 				return json_encode(array("errcode"=>20602, "errmsg"=>"call delete failed when delete a relation"));
 			}
 		}else{
-			Yii::trace($account->getErrors(), 'relation\delete');
+			Yii::trace($relation->getErrors(), 'relation\delete');
 			return json_encode(array("errcode"=>20602, "errmsg"=>"call delete failed when delete a relation"));
 		}
+	}
+
+	public function queryRelation($post)
+	{
+		$relation = new Relation;
+		$relation->setScenario('verify');
+		$relation->phoneNumberA = $post["phoneNumberA"];
+		$relation->phoneNumberB = $post["phoneNumberB"];
+		Yii::trace($relation->attributes, 'circle\fetch');
+
+		if(!$relation->validate())
+		{
+			//非好友关系
+			return json_encode(array("errcode"=>0, "relation"=>0));
+		}
+
+		return json_encode(array("errcode"=>0, "relation"=>1));
+	}
+
+	public function queryRelationById($post)
+	{
+		$phoneNumberB = Account::findOne(['id' => $post["userB"]])->phoneNumber;
+		$relation = new Relation;
+		$relation->setScenario('verify');
+		$relation->phoneNumberA = $post["phoneNumberA"];
+		$relation->phoneNumberB = $phoneNumberB;
+		Yii::trace($relation->attributes, 'circle\fetch');
+
+		if(!$relation->validate())
+		{
+			//非好友关系
+			return json_encode(array("errcode"=>0, "relation"=>0));
+		}
+
+		return json_encode(array("errcode"=>0, "relation"=>1));
 	}
 }
 
