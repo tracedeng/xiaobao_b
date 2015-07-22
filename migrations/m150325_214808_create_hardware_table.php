@@ -71,9 +71,10 @@ class m150325_214808_create_hardware_table extends Migration
 
 	    //一些固定参数
 	    $this->createTable("fixpara", [
-	    	"maxScale" => Schema::TYPE_BIGINT,
-	    	"bootScale" => Schema::TYPE_BIGINT,
-	    	"maxNail" => Schema::TYPE_BIGINT,
+			"minScale" => Schema::TYPE_FLOAT . ' DEFAULT 3',
+			"maxScale" => Schema::TYPE_FLOAT . ' DEFAULT 19',
+			"bootScale" => Schema::TYPE_FLOAT . ' DEFAULT 13',
+	    	"maxNail" => Schema::TYPE_BIGINT . ' DEFAULT 20',
 	    ], "DEFAULT CHARSET=utf8;");
 
     }

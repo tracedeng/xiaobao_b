@@ -328,6 +328,7 @@ class UserController extends Controller
 				}
 			}else{
 				//失败
+				Yii::warning($attach->error, 'user\headimage');
 				Yii::warning("save file to " . $savepath . " failed", 'user\headimage');
 				return json_encode(array("errcode"=>20602, "errmsg"=>"save file failed"));
 			}

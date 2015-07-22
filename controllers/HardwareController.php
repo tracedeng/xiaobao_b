@@ -289,7 +289,7 @@ class HardwareController extends Controller
 			//更新绑定设备用户的助养标志，必然是打开助养，没必要做检查
 			$material = $Material::find()->where(['id' => $userId])->one();
 			$material->sponsor = 1;
-			$material->save()
+			$material->save();
 			//self::updateUserSponsor($userId);
 
 			Yii::trace("bind gprs succeed", 'hardware\bindGprs');
@@ -579,7 +579,7 @@ class HardwareController extends Controller
 			return json_encode(array("errcode"=>20602, "errmsg"=>"pet not bind gprs"));
 		}
 		//找到硬件未关闭的宠物位置信息
-		$sql = 'select motionIndex, (timestampdiff(minute, time , now()) div 20) as seq from hardware where gprsId = ' . $gprsId .' and day < date_sub(curdate(), interval 1 day)';
+		$sql = 'select position, (timestampdiff(minute, time , now()) div 20) as seq from hardware where gprsId = ' . $pet["gprsId"] .' and time < date_sub(curdate(), interval 1 day)';
 		$orbit = Hardware::findBySql($sql)->asArray()->all();
 		Yii::trace($orbit, 'hardware\orbit');
 

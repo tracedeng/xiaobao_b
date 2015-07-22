@@ -347,6 +347,7 @@ class PetController extends Controller
 
 		$pet = Pet::findOne($id);
 		$pet->food = $post["food"];
+		$pet->foodName = $post["foodName"];
 		Yii::trace($pet->attributes, 'pet\food');
 		if($pet->save())
 		{

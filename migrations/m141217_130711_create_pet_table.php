@@ -25,6 +25,7 @@ class m141217_130711_create_pet_table extends Migration
 			"sponsorOpen" => Schema::TYPE_BOOLEAN . ' DEFAULT 0',
 			"sponsorCount" => Schema::TYPE_BIGINT . ' DEFAULT 0',
 	    	"food" => Schema::TYPE_BIGINT . ' default 0',
+			"foodName" => Schema::TYPE_STRING . ' DEFAULT "狗狗吃什么"',
 	    ], "DEFAULT CHARSET=utf8;");
 
 	    //宠物助养关系

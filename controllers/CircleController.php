@@ -349,104 +349,105 @@ class CircleController extends Controller
     }
 
     //发布一条朋友圈
-    public function release($post)
-    {
+	public function release($post)
+	{
 	    //$post = $_POST;	//post附加信息
 	    $files = $_FILES;	//上传的图片信息，关联数组结构
 	    Yii::trace($post, 'circle\release');
 	    Yii::trace($files, 'circle\release');
 
-		    $circle = new Circle;
-	    	    $circle->setScenario('release');
+		$circle = new Circle;
+		$circle->setScenario('release');
 
-	    	    //Account表中根据phoneNumber获取ID
-	    	    $userId = Account::findOne(['phoneNumber' => $post["phoneNumber"]])->id;
-	    	    Yii::trace('id=' . $userId, 'circle\release');
+		//Account表中根据phoneNumber获取ID
+		$userId = Account::findOne(['phoneNumber' => $post["phoneNumber"]])->id;
+		Yii::trace('id=' . $userId, 'circle\release');
 
-		    $directory = $this->generateImageDictionary();
-	    	    //不能直接@circle，why?
-		    $saveDirectory = Yii::getAlias('@circle') . '/' . $directory . '/';
-		    if(count($files) > 0)
+		$directory = $this->generateImageDictionary();
+		//不能直接@circle，why?
+		$saveDirectory = Yii::getAlias('@circle') . '/' . $directory . '/';
+		if(count($files) > 0)
+		{
+		    if(false == mkdir($saveDirectory, 0777, true))
 		    {
-			    if(false == mkdir($saveDirectory, 0777, true))
-			    {
-				    Yii::warning("create directory " . $saveDirectory . "failed", 'circle\release');
-				    break;
-			    }
-			    $circle->detailImagesPath = $directory;
+			    Yii::warning("create directory " . $saveDirectory . "failed", 'circle\release');
+			    break;
 		    }
-		    $index = 1;	//文件名，注意这是从1开始
-	    	    //Yii::trace(array_keys($files), 'circle\release');
-		    //验证成功，遍历上传的文件
-		    //TOTO... 遍历可放入上面的if中
-		    foreach(array_keys($files) as $file)
-		    {
-			    //暂时只支持9个文件
-			    if($index > 9) break;
-			    //也可以分割字符串explode('.', $file['name']);
-			    //list($name, $extension) = split('\.', $file['name']);
-	    		    //Yii::trace($name . "." . $extension, 'circle\release');
-	    		    //$attach = UploadedFile::getInstanceByName($name);
-	    		    Yii::trace($file, 'circle\release');
-	    		    $attach = UploadedFile::getInstanceByName($file);
-	    		    if ($attach != null)
-	    		    {
-				    /*
-	    		    	    Yii::trace($attach->baseName, 'circle\release');
-	    		    	    Yii::trace($attach->extension, 'circle\release');
-	    		    	    Yii::trace($attach->name, 'circle\release');
-	    		    	    Yii::trace($attach->tempName, 'circle\release');
-	    		    	    Yii::trace($attach->size, 'circle\release');
-	    		    	    Yii::trace($attach->type, 'circle\release');
-				    */
-				    //文件名称不够2位前面补0，最多可保存99个文件，为了方便管理不使用后缀名
-				    $savepath = sprintf("%s%02u", $saveDirectory, $index);
-				    $savethumbpath = sprintf("%sthumb%02u", $saveDirectory, $index);
-				    $save = $attach->saveAs($savepath, true);
-				    if($save)
-				    {
-				    	Yii::trace("save file to " . $savepath . " success", 'circle\release');
+		    $circle->detailImagesPath = $directory;
+		}
+		$index = 1;	//文件名，注意这是从1开始
+		//Yii::trace(array_keys($files), 'circle\release');
+		//验证成功，遍历上传的文件
+		//TOTO... 遍历可放入上面的if中
+		foreach(array_keys($files) as $file)
+		{
+		    //暂时只支持9个文件
+		    if($index > 9) break;
+		    //也可以分割字符串explode('.', $file['name']);
+		    //list($name, $extension) = split('\.', $file['name']);
+			//Yii::trace($name . "." . $extension, 'circle\release');
+			//$attach = UploadedFile::getInstanceByName($name);
+			Yii::trace($file, 'circle\release');
+			$attach = UploadedFile::getInstanceByName($file);
+			if ($attach != null)
+			{
+				/*
+					    Yii::trace($attach->baseName, 'circle\release');
+					    Yii::trace($attach->extension, 'circle\release');
+					    Yii::trace($attach->name, 'circle\release');
+					    Yii::trace($attach->tempName, 'circle\release');
+					    Yii::trace($attach->size, 'circle\release');
+					    Yii::trace($attach->type, 'circle\release');
+				*/
+				//文件名称不够2位前面补0，最多可保存99个文件，为了方便管理不使用后缀名
+				$savepath = sprintf("%s%02u", $saveDirectory, $index);
+				$savethumbpath = sprintf("%sthumb%02u", $saveDirectory, $index);
+				$save = $attach->saveAs($savepath, true);
+				if($save)
+				{
+					Yii::trace("save file to " . $savepath . " success", 'circle\release');
 					//生成缩略图
 					if(true == $this->img2thumb($savepath, $savethumbpath, $attach->extension, 100, 100, 0, 0))
 					{
-				    		Yii::trace("save thumbnail file to " . $savethumbpath . " success", 'circle\release');
+							Yii::trace("save thumbnail file to " . $savethumbpath . " success", 'circle\release');
 						$index++;
 					}else{
-				    		//即使失败，继续
-				    		Yii::warning("save thumbnail file to " . $savethumbpath . " failed", 'circle\release');
+							//即使失败，继续
+							Yii::warning("save thumbnail file to " . $savethumbpath . " failed", 'circle\release');
 					}
-				    }else{
-				    	//即使失败，继续
-				    	Yii::warning("save file to " . $savepath . " failed", 'circle\release');
-				    }
-	    		    }else{
-				    //即使失败，继续
-				    Yii::warning("UploadedFile::getInstanceByName() failed", 'circle\release');
-			    }
+				}else{
+					//即使失败，继续
+					Yii::warning("save file to " . $savepath . " failed", 'circle\release');
+				}
+			}else{
+				//即使失败，继续
+				Yii::warning("UploadedFile::getInstanceByName() failed", 'circle\release');
 		    }
+		}
 
-		    //保存到circle表中
-		    $circle->ownerId = $userId;
-		    $circle->detailImagesCount = $index - 1;
-		    $circle->type = $post["type"];
-		    $circle->detailText = $post["detailText"];
-		    $circle->releaseTime = "" . date("Y-m-d H:i:s");
-	    	    Yii::trace($circle->attributes, 'circle\release');
+		//保存到circle表中
+		$circle->ownerId = $userId;
+		$circle->detailImagesCount = $index - 1;
+		$circle->type = $post["type"];
+		$circle->detailText = $post["detailText"];
+		$circle->location = $post["position"];
+		$circle->releaseTime = "" . date("Y-m-d H:i:s");
+	    Yii::trace($circle->attributes, 'circle\release');
 
-		    //TODO... save()后调用validate，可省略
-		    if($circle->validate())
+		//TODO... save()后调用validate，可省略
+		if($circle->validate())
+		{
+		    Yii::trace("check success", "circle\release");
+		    if($circle->save())
 		    {
-			    Yii::trace("check success", "circle\release");
-			    if($circle->save())
-			    {
-	    		    	return json_encode(array("errcode"=>0, "errmsg"=>"release circle succeed"));
-			    }else{
-	    		    	return json_encode(array("errcode"=>20103, "errmsg"=>"circle save failed"));
-			    }
+	    	    	return json_encode(array("errcode"=>0, "errmsg"=>"release circle succeed"));
 		    }else{
-	    	    	    Yii::trace($circle->getErrors(), 'circle\release');
-	    		    return json_encode(array("errcode"=>20102, "errmsg"=>"cirlce validate check failed"));
+	    	    	return json_encode(array("errcode"=>20103, "errmsg"=>"circle save failed"));
 		    }
+		}else{
+	        Yii::trace($circle->getErrors(), 'circle\release');
+	    	return json_encode(array("errcode"=>20102, "errmsg"=>"cirlce validate check failed"));
+		}
 	    /*}else{
 	    	    Yii::trace($account->getErrors(), 'circle\release');
 		    return json_encode(array("errcode"=>20101, "errmsg"=>"invalid skey"));
