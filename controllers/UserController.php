@@ -318,7 +318,7 @@ class UserController extends Controller
 			{
 				Yii::trace("save file to " . $savepath . " success", 'user\headimage');
 				//生成缩略图
-				if(true == $this->img2thumb($savepath, $savethumbpath, $attach->extension, 400, 300, 0, 0))
+				if(true == $this->head2thumb($savepath, $savethumbpath, $attach->extension, 100, 100))
 				{
 					Yii::trace("save thumbnail file to " . $savethumbpath . " success", 'user\headimage');
 				}else{
@@ -437,6 +437,93 @@ class UserController extends Controller
 		}
 	}
 	*/
+        
+           
+    /*
+    * @param string     源图绝对完整地址{带文件名及后缀名}
+    * @param string     目标图绝对完整地址{带文件名及后缀名}
+    * @param string     扩展名
+    * @param int        缩略图宽{0:此时目标高度不能为0，目标宽度为源图宽*(目标高度/源图高)}
+    * @param int        缩略图高{0:此时目标宽度不能为0，目标高度为源图高*(目标宽度/源图宽)}
+    */
+    function head2thumb($src_img, $dst_img, $dst_ext, $width = 300, $height = 320)
+    {
+        if(!is_file($src_img))
+        {
+            return false;
+        }
+        $ot = $dst_ext;
+        $otfunc = 'image' . ($ot == 'jpg' ? 'jpeg' : $ot);
+        $srcinfo = getimagesize($src_img);
+        //print_r($srcinfo);exit();
+        $src_w = $srcinfo[0];
+        $src_h = $srcinfo[1];
+        //计算目标图片长宽比率
+        $bilv = $height/$width;
+        $_3 = 9/3;
+        //源图最小的边
+        $min_border = min($src_w,$src_h);
+
+        if($src_w == $min_border){
+            //根据目标图比率计算源高应该的取值
+            $src_h2 = $bilv*$src_w;
+            $src_w2 = $min_border;
+            //因为宽小所以高大，需计算高的截取时候坐标
+            $scr_y2 = ($src_h - $src_h2)/2;//实际高减去要截取的高，除以2得出y的坐标
+
+            $scr_x2 = 0;
+        }else{
+            //根据目标比率给源图宽取值
+            $src_w2 = $src_h/$bilv;
+            $src_h2 = $min_border;
+            //因为高小所以宽大，需计算宽的截取时候坐标
+            $scr_x2 =($src_w - $src_w2)/2;
+            $scr_y2 = 0;
+
+        }
+        //计算源图的x或y坐标
+
+
+        $type  = strtolower(substr(image_type_to_extension($srcinfo[2]), 1));
+        $createfun = 'imagecreatefrom' . ($type == 'jpg' ? 'jpeg' : $type);
+
+        $dst_h = $height;
+        $dst_w = $width;
+        $x = $y = 0;
+
+        //如果目标图像的或高大于源图，则将目标图像的快高都为源图
+        if($width> $src_w)
+        {
+            $dst_w = $width = $src_w;
+        }
+        if($height> $src_h)
+        {
+            $dst_h = $height = $src_h;
+        }
+
+        if(!$width && !$height && !$proportion)
+        {
+            return false;
+        }
+
+        $src = $createfun($src_img);
+        $dst = imagecreatetruecolor($width ? $width : $dst_w, $height ? $height : $dst_h);
+        $white = imagecolorallocate($dst, 255, 255, 255);
+        imagefill($dst, 0, 0, $white);
+
+        if(function_exists('imagecopyresampled'))
+        {
+            imagecopyresampled($dst, $src, 0, 0, $scr_x2, $scr_y2, $width, $height, $src_w2, $src_h2);
+        }
+        else
+        {
+            imagecopyresized($dst, $src, $x, $y, 0, 0, $dst_w, $dst_h, $src_w2, $src_h2);
+        }
+        $otfunc($dst, $dst_img);
+        imagedestroy($dst);
+        imagedestroy($src);
+        return true;
+    }
 }
 
 ?>

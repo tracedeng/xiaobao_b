@@ -1,7 +1,7 @@
 <?php
 
 $params = require(__DIR__ . '/params.php');
-
+date_default_timezone_set('PRC'); //设置中国时区
 $config = [
     'id' => 'basic',
     'basePath' => dirname(__DIR__),

@@ -140,7 +140,7 @@ class Account extends ActiveRecord
 		mcrypt_module_close($td);
 
 		//这个相同字符串比较死活不一致，奔溃了，求解脱
-		return ($phoneNumber + 0 == $this->phoneNumber + 0);
+		return ((intval($phoneNumber) + 0) == (intval($this->phoneNumber) + 0));
 	}
 	/*
 	public function scenarios()

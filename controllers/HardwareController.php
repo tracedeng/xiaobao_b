@@ -287,7 +287,7 @@ class HardwareController extends Controller
 		if($pet->save())
 		{
 			//更新绑定设备用户的助养标志，必然是打开助养，没必要做检查
-			$material = $Material::find()->where(['id' => $userId])->one();
+			$material = Material::find()->where(['id' => $userId])->one();
 			$material->sponsor = 1;
 			$material->save();
 			//self::updateUserSponsor($userId);
