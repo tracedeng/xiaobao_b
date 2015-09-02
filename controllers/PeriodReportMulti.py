@@ -117,6 +117,9 @@ def modify_gps_package_freq(l):
 #IMEI,16,serverdns,port
 def change_server_ip(l):
 	command = ','.join(l)
+	logging.debug("modify gps package frequence, command:%s, destination:%s", command, dest)
+	s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+	s.sendto(command, dest)
 
 init_logger()
 try:

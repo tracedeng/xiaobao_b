@@ -633,6 +633,7 @@ class PetController extends Controller
 
 		$pet->introduce = @"";
 		$pet->time = "" . date("Y-m-d H:i:s");
+		$pet->isBindGprs = 0;
 		Yii::trace($pet->attributes, 'pet\add');
 
 		if($pet->save())

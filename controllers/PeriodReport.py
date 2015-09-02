@@ -25,15 +25,23 @@ def init_logger():
 
 def gps_packet(l, cliAddr):
 	try:
-		[imei, time, lng, lat, lbslng, lbslat, steps, state, chargestate, battery, voltage] = l
-		#[imei, time, lng, lat, pwr, switch, spd, _, _, _, lbslng, lbslat, adc] = l
-		#logging.debug("imei:%s, time:%s, lng:%s, lat:%s, pwr:%s, switch:%s, spd:%s, _:%s, _:%s, _:%s, lbslng:%s, lbslat:%s, adc:%s", l)
-		logging.debug("imei:%s, time:%s, lng:%s, lat:%s, steps:%s, battery:%s, voltage:%s", imei, time, lng, lat, steps, battery, voltage)
+		if len(l) == 11:
+			[imei, time, lng, lat, lbslng, lbslat, steps, state, chargestate, battery, voltage] = l
+			#[imei, time, lng, lat, pwr, switch, spd, _, _, _, lbslng, lbslat, adc] = l
+			#logging.debug("imei:%s, time:%s, lng:%s, lat:%s, pwr:%s, switch:%s, spd:%s, _:%s, _:%s, _:%s, lbslng:%s, lbslat:%s, adc:%s", l)
+			logging.debug("imei:%s, time:%s, lng:%s, lat:%s, steps:%s, battery:%s, voltage:%s", imei, time, lng, lat, steps, battery, voltage)
 
-		#ip, port = cliAddr
-		addr = json.JSONEncoder().encode({"ip":cliAddr[0], "port":cliAddr[1]})
-		position = json.JSONEncoder().encode({"lng":lng, "lat":lat})
-		params = {'skey': '', 'opcode': '50', 'gprsId': imei, 'motionIndex': steps, 'battery': battery, 'position': position, 'cliaddr':addr}
+			#ip, port = cliAddr
+			addr = json.JSONEncoder().encode({"ip":cliAddr[0], "port":cliAddr[1]})
+			if (len(lng) != 0) and (len(lat) != 0):
+				lng = float(lng);
+				lat = float(lat);
+				lng = lng // 100 + (lng / 100 - lng // 100) * 100 / 60;
+				lat = lat // 100 + (lat / 100 - lat // 100) * 100 / 60;
+			position = json.JSONEncoder().encode({"lng":lng, "lat":lat})
+			params = {'skey': '', 'opcode': '50', 'gprsId': imei, 'motionIndex': steps, 'battery': battery, 'position': position, 'cliaddr':addr}
+		else if len(l) > 11:
+
 
 		#params = urllib.urlencode({'name': 'tom', 'age': 22})
 		headers = {"Content-type": "application/x-www-form-urlencoded", "Accept": "text/plain"}

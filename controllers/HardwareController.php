@@ -3,9 +3,7 @@
 namespace app\controllers;
 
 use Yii;
-use yii\filters\AccessControl;
 use yii\web\Controller;
-use yii\filters\VerbFilter;
 use app\models\Account;
 use app\models\Pet;
 use app\models\Material;
@@ -710,9 +708,12 @@ class HardwareController extends Controller
 		$gprsId = $pet->gprsId;
 
 		//24 * 60 + 20 = 1460min
-		$sql = "select motionIndex, (timestampdiff(minute, curdate(), time) div 20) as seq from hardware where gprsId = " . $gprsId ." and time > curdate()";
-		//$sql = "select motionIndex, (timestampdiff(minute, time, now()) div 20) as seq from hardware where gprsId = " . $gprsId ." and time > date_sub(curdate(), interval 1460 minute)";
+		//时间方法
+		//$sql = "select motionIndex, (timestampdiff(minute, curdate(), time) div 20) as seq from hardware where gprsId = " . $gprsId ." and time > curdate()";
+		//序号方法
+		$sql = "select motionIndex, seq - 1 as seq from hardware where gprsId = " . $gprsId ." and time > curdate() and seq > 0 limit 72";
 		$motion = Hardware::findBySql($sql)->asArray()->all();
+		//$motion = Hardware::find()->where(["gprsId" => $gprsId])->select('motionIndex, seq')->asArray()->all();
 		Yii::trace($motion, 'motion\dayMotion');
 		//motion格式array((motionIndex=>100, seq=9), (motionIndex=>200, seq=99),...)
 		//转变后格式array(0=>100, 1=>200)
@@ -825,10 +826,21 @@ class HardwareController extends Controller
 			}
 		}
 		Yii::trace($cookFoods, 'pet\queryFoods');
-
+               /* 
+                //配置 图片文件 在服务器的目录
+                $ip = "http://182.254.159.219/";
+                $img_path = "basic/data/petfood/";
+                $url =$ip.$img_path;
+				*/
+                
 		$foods = array();
 		foreach($cookFoods as $key=>$value)
 		{
+                 /*       foreach ($value as $key2 => $value2) {
+                            if(!empty($value2['pic'])){
+                                $value[$key2]['pic'] = $url.$value2['pic'].".png";
+                            }
+                        }*/
 			array_push($foods, array("section"=>$key, "foods"=>$value));
 		}
 		Yii::trace($foods, 'pet\queryFoods');
@@ -1007,13 +1019,205 @@ class HardwareController extends Controller
 			Yii::trace("save real consumption failed", 'hardware\rawdata');
 		}
 	}
+	/*
+        //走动步数
+        public function MoveIndex($post){
+           $userid = $this->getActiveUserid($post['phoneNumber']);
+            $gprsid = $this->userid2gprsid($userid);
+            if(!empty($gprsid)){
+                //开始读取当日数据
+                $today_data = $this->get_today_data($gprsid);
+                $today_data2 = $this->check_times($today_data);
+                $MoveIndex = array();
+                $MoveIndex['gprsId'] = $today_data2[0]['gprsId'];
+                foreach ($today_data2 as $key => $value) {
+                    $MoveIndex['Motion'][$value['time']] = $value['motionIndex'];
+                }
+                echo json_encode($MoveIndex);
+            }else{
+                echo '{"code":"1201"},"msg":"请先绑定小宝"}';
+            }
+        }
+        //今天运动轨迹
+        public function MoveTrack($post){
+            $userid = $this->getActiveUserid($post['phoneNumber']);
+            $gprsid = $this->userid2gprsid($userid);
+            if(!empty($gprsid)){
+                //开始读取当日数据
+                $today_data = $this->get_today_data($gprsid);
+                $today_data2 = $this->check_times($today_data);
+                $snapshot_data = $this->get_snapshot_data($gprsid);
+                $snapshot_data_r = $this->format_data($snapshot_data);
+                //将今日快照的地理位置 合并起来。
+                $today_data3 = array_merge($today_data2,$snapshot_data_r);
+                $MoveTrack = array();
+                $MoveTrack['gprsId'] = $today_data3[0]['gprsId'];
+                $time_point_arr = array(); 
+                foreach ($today_data3 as $key => $value) {
+                    if($value['position'] != ""){
+                        $time_point_arr[$value['time']] = $value['position'];
+                    }
+                }
+                ksort($time_point_arr);
+                $MoveTrack['Track']=$time_point_arr;
+                echo json_encode($MoveTrack);
+            }else{
+                echo '{"code":"1201"},"msg":"请先绑定小宝"}';
+            }
+            
+        }*/
+        /*
+         * 获取当前phoneNumber的ID
+         *//*
+        function getActiveUserid($pnumber){
+            $userid_sql = "SELECT `id` FROM `account` WHERE phoneNumber='".$pnumber."'";
+            $userid = account::findBySql($userid_sql)->one();
+            return $userid['id'];
+        }*/
+        
+        /*
+         * 当前phoneNumber转gprsId
+         */
+            /*
+             * 这里应该有一个默认读取哪一个宠物的gprs编号,这个gprs的默认显示他的数据指数图形。
+             * 赞未被启用，因为数据库未有isDefault字段 ,此时默认取最后一个pet的gprsid
+             */
+			 /*
+        public function userid2gprsid($userid,$petid = "default"){
+            if($petid == 'default'){
+                $petid = " AND isDefault = 1";
+            }else{
+                $petid = " AND `id` =".$petid;
+            }
+            
+            $gprsId_sql = "SELECT `gprsId` FROM `pet` WHERE ownerId='".$userid."' ORDER BY id DESC";
+            
+            $gprsId = pet::findBySql($gprsId_sql)->one();
+            return $gprsId['gprsId'];
+        }*/
+       /* 
+        // 找出今天截止目前数据库中的所有数据。包括
+        function get_today_data($gprsid){
+            $connection = \Yii::$app->db;
+            //每个设备必须被唯一的账号绑定
+            //每个账号可以有多个宠物，多个硬件设备。
+            $today=  date("Y-m-d")." 00:00:00";
+            //$today=  "2015-08-26 00:00:00";
+            $sql = "SELECT * FROM `hardware` WHERE `gprsId` = '".$gprsid."' AND `time`>'".$today."' ORDER BY time ASC";
+            $command=$connection->createCommand($sql);
+            $gprs_data_arr=$command->queryAll();
+            return $gprs_data_arr;
+        }
+        
+        // 读取快照定位
+        public function get_snapshot_data($gprsid){
+            $today=  date("Y-m-d")." 00:00:00";
+            $connection = \Yii::$app->db;
+            $sql = "SELECT * FROM `snapshot` WHERE `gprsId` = '".$gprsid."' AND `time`>'".$today."' ORDER BY time ASC";
+            $command=$connection->createCommand($sql);
+            $gprs_data_arr=$command->queryAll();
+            return $gprs_data_arr;
+        }
+        // 检查截至目前每隔20分钟的数据是否完整，若不完整则处理
+        public function check_times($today_data){
+            $error_i = 0;
+            $send_i = intval(date("H",time())) * 3;//当前时间的hour小时,必须是24小时制,$send_i是最终需要循环的次数，也就是当日硬件设备应该向数据库发送的数据次数
+            $timeI = date("i",time());//当前时间的minute分钟
+            switch ($timeI){
+                case $timeI>20 && $timeI<40:
+                    $send_i += 1;
+                break;
+                case $timeI>40:
+                    $send_i += 2;
+                break;
+            }
+            //print_r($today_data);
+            $times_total = count($today_data);//数据库查询出来的发送次数
+            if(($times_total < $send_i) || ($times_total > $send_i)){
+                //如果收到的数据次数小于应该收到的数据次数，那么返回数据错误。
+                $exception = 1;
+            }else{
+                $exception = 0;
+            }
 
-	public function actionOperate()
+            $i = 0;//$i循环次数，若等于$send_i 则数据完整，没有异常。若循环缺少应该用有的时间，则自动补充，并计算补充时间点的替补数据。
+            if(!isset($today_data[0]['time'])){
+                exit('{"code":"1022","msg","数据库没有任何记录"}');
+            }
+            $f_time = substr($today_data[0]['time'], 14,2);//这个是今日第一次发送数据时候的分钟。作为分钟点
+            if($f_time != ""){
+                $now_YmdHis = date("Y-m-d",time())." 00:".$f_time;
+            }  else {
+                $now_YmdHis = date("Y-m-d",time())." 00:00";
+            }
+            //$now_YmdHis = "2015-08-26 00:00:00";
+            $point_time = strtotime($now_YmdHis);//起点时间，不包含秒 例如：2015-08-26 07:20
+            
+            $key_i = $times_total-1; 
+            $time_existed = array();
+            foreach ($today_data as $key => $time) {
+                $rs=strpos($time['time'],date("Y-m-d H:i",$point_time));
+                $time_existed[]=$point_time;
+                if($rs !== false){
+                    $time2 = date("Y-m-d H:i",strtotime($time['time']));
+                }else{
+                    //出现找不当应该有的时间点时候，先试试是否在1分钟时间内有数据，如果没有则找替补时间。
+                    //判断是否有相邻时间点
+                    $rs2=$this->is_adjacent($time['time'],$today_data);
+                    if($rs2){
+                        $today_data[$key]['time'] = date("Y-m-d H:i",$point_time);
+                    }
+                }
+                $today_data[$key]['position'] = json_decode($today_data[$key]['position'],true);
+                $point_time = strtotime('+20 minute',$point_time);
+            }
+            
+            if($exception = 1){
+                //数据条数有误，则补充时间，值取nu
+                $point_time2 = strtotime($now_YmdHis);
+                $time_arr = array();
+                for($i =0; $i<=$send_i;$i++,$point_time2 = strtotime('+20 minute',$point_time2)){
+                    if(!in_array($point_time2, $time_existed)){
+                        $time_arr[$i]['gprsId']=$today_data[0]['gprsId'];
+                        $time_arr[$i]['position']="";
+                        $time_arr[$i]['motionIndex']="";
+                        $time_arr[$i]['battery']="";
+                        $time_arr[$i]['time']=date("Y-m-d H:i",$point_time2);
+                    }
+                }
+            }
+            return array_merge($today_data,$time_arr);
+        }
+        // 去除时间秒，将经纬度转换为array
+        
+        public function format_data($data){
+            foreach ($data as $key => $value) {
+                $data[$key]['time'] = date("Y-m-d H:i",strtotime($value['time']));
+                $data[$key]['position'] = json_decode($value['position']);
+            }
+            return $data;
+        }
+        // 判断在应该的时间点3分钟内是否有数据，如果有则取该值作为数据值
+        public function is_adjacent($time,$today_data_arr){
+            $array = array();
+            foreach ($today_data_arr as $key => $val) {
+                $time1 = substr($val['time'], 14,2);
+                $time2 = substr($time, 14,2);
+                if(abs($time1-$time2)<3){
+                    $val['time'] = $time;
+                    return $val;
+                }
+            }
+        }
+*/
+
+    public function actionOperate()
 	{
+            
 		$account = new Account;
 		$account->setScenario('verify');
 		$post = $_POST ? $_POST : json_decode(Yii::$app->request->getRawBody(), true);
-		Yii::trace($post, 'hardware\operation');
+                //$post = $_POST;
 		$account->attributes = $post;
 		$account->skey = $post["skey"];
 		Yii::trace($account->attributes, 'hardware\operation');
@@ -1080,14 +1284,16 @@ class HardwareController extends Controller
 					return $this->querySOS($post);
 				case 61:
 					//发送SOS后更新
-					return $this->setSOS($post);
+					return $this->setSOS($post);/*
+                                case 62:
+                                    return $this->MoveTrack($post);
+                                case 63:
+                                    return $this->MoveIndex($post);*/
 				default:
 					//不支持的操作不回包
 					break;
 			}
 		}else{
-			Yii::trace($opcode, 'hardware\operation');
-			//Yii::trace("adf", 'hardware\operation');
 			if(50 == $opcode)
 			{
 				return $this->manageGprsRawData($post);

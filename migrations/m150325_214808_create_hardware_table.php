@@ -19,6 +19,7 @@ class m150325_214808_create_hardware_table extends Migration
 			"positionGeo9" => Schema::TYPE_STRING . ' DEFAULT ""',
 			"motionIndex" => Schema::TYPE_FLOAT . ' DEFAULT 0',
 			"battery" => Schema::TYPE_SMALLINT . ' DEFAULT 2',
+			"seq" => Schema::TYPE_SMALLINT,
 			"time" => Schema::TYPE_DATETIME . ' NOT NULL',
 			'PRIMARY KEY (id, gprsId)',
 	    ], "DEFAULT CHARSET=utf8;");
@@ -36,6 +37,7 @@ class m150325_214808_create_hardware_table extends Migration
 			"positionGeo9" => Schema::TYPE_STRING . ' DEFAULT ""',
 			"motionIndex" => Schema::TYPE_FLOAT,
 			"battery" => Schema::TYPE_SMALLINT,
+			"seq" => Schema::TYPE_SMALLINT,
 			"time" => Schema::TYPE_DATETIME . ' NOT NULL',
 			"closed" => Schema::TYPE_BOOLEAN . ' DEFAULT 0',
 	    	"cliaddr" => Schema::TYPE_STRING . ' DEFAULT ""',
