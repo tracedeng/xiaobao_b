@@ -914,6 +914,54 @@ class HardwareController extends Controller
 		}
 	}
 
+	private function udpSendMsg($msg = '', $ip = '127.0.0.1', $port = '9527')
+	{
+		$fp = stream_socket_client("udp://{$ip}:{$port}", $errno, $errstr, 30);
+		//$fp = stream_socket_client("tcp://www.example.com:80", $errno, $errstr, 30);
+		if (!$fp) {
+			Yii::trace("", 'hardware\udp');
+			return false;
+		} 
+		fwrite($fp, "GET / HTTP/1.0\r\nHost: www.example.com\r\nAccept: */*\r\n\r\n");
+		//while (!feof($fp)) {
+		//   echo fgets($fp, 1024);
+		//}
+		fclose($fp);
+		return true;
+	}
+
+	public function manageOrder($post)
+	{
+		//TODO... 有效性检查，避免读 $post数据失败
+		$petId = $post["petId"];
+		$userId = Account::findOne(['phoneNumber' => $post["phoneNumber"]])->id;
+
+		//检查用户拥有或助养该宠物
+		if(false == $this->canFetchPosition($petId, $userId))
+		{
+			Yii::trace("manage gprs order failed, user not own this pet", 'hardware\order');
+			return json_encode(array("errcode"=>20902, "errmsg"=>"fetch position failed, user not own or sponsor this pet"));
+		}
+		//检查宠物是否绑定硬件
+		$pet = Pet::find()->where(["id" => $petId])->select('gprsId, isBindGprs')->asArray()->one();
+		if(!$pet["isBindGprs"])
+		{
+			Yii::trace("this pet not bind gprs", 'hardware\order');
+			return json_encode(array("errcode"=>20902, "errmsg"=>"pet not bind gprs"));
+		}
+		//下发指令，格式[GPRSID, 7, DSTADDR]
+		$dst = Snapshot::find()->where(['gprsId'=>$pet["gprsId"], 'closed'=>0])->select('cliAddr')->asArray()->one();
+		Yii::trace($dst, 'hardware\order');
+		$msg = implode(",", array($pet["gprsId"], 7, $dst));
+		Yii::trace($msg, 'hardware\order');
+		if($this->udpSendMsg($msg))
+		{
+			return json_encode(array("errcode"=>0, "errmsg"=>"send order success"));
+		}else{
+			return json_encode(array("errcode"=>20903, "errmsg"=>"send order failed"));
+		}
+	}
+
 	public function manageGprsRawData($post)
 	{
 		$gprsId = $post['gprsId'];
@@ -1281,6 +1329,9 @@ class HardwareController extends Controller
 					//return $this->setFood($post);
 				case 50:
 					return $this->manageGprsRawData($post);
+				case 51:
+					//处理客户端定位指令
+					return $this->manageOrder($post);
 				case 60:
 					//当前是否可以发送SOS 
 					return $this->querySOS($post);

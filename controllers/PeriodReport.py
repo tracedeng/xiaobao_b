@@ -60,11 +60,11 @@ def gps_packet(l, cliAddr):
 
 #IMEI,7,SEC_SWITCH_ON,SEC_SWITCH_OFF
 def modify_gps_package_freq(l):
-	dest = (l[4], l[5])
-	command = ",".join(l[0:4])
+	[imei, order, dest] = l
+	command = ",".join([imei, 7, 1])
 	logging.debug("modify gps package frequence, command:%s, destination:%s", command, dest)
-	s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-	s.sendto(command, dest)
+	#s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+	#s.sendto(command, dest)
 
 #IMEI,16,serverdns,port
 def change_server_ip(l):
