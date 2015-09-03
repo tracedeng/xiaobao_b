@@ -577,7 +577,9 @@ class HardwareController extends Controller
 			return json_encode(array("errcode"=>20602, "errmsg"=>"pet not bind gprs"));
 		}
 		//找到硬件未关闭的宠物位置信息
-		$sql = 'select position, (timestampdiff(minute, time , now()) div 20) as seq from hardware where gprsId = ' . $pet["gprsId"] .' and time < date_sub(curdate(), interval 1 day)';
+		//seq = 0表示0～2点 seq=1表示2～4点
+		$sql = 'select position, (timestampdiff(hour, curdate(), time) div 2) as seq from hardware where gprsId = ' . $pet["gprsId"] .' and time > curdate()';
+		//$sql = select position, (timestampdiff(hour, curdate(), time) div 2) as seq from hardware where gprsId = 860719120000038 and time > curdate();
 		$orbit = Hardware::findBySql($sql)->asArray()->all();
 		Yii::trace($orbit, 'hardware\orbit');
 
