@@ -34,13 +34,13 @@ def gps_packet(l, cliAddr):
 			#ip, port = cliAddr
 			addr = json.JSONEncoder().encode({"ip":cliAddr[0], "port":cliAddr[1]})
 			if (len(lng) != 0) and (len(lat) != 0):
-				lng = float(lng);
-				lat = float(lat);
-				lng = lng // 100 + (lng / 100 - lng // 100) * 100 / 60;
-				lat = lat // 100 + (lat / 100 - lat // 100) * 100 / 60;
+				lng = float(lng)
+				lat = float(lat)
+				lng = lng // 100 + (lng / 100 - lng // 100) * 100 / 60
+				lat = lat // 100 + (lat / 100 - lat // 100) * 100 / 60
 			position = json.JSONEncoder().encode({"lng":lng, "lat":lat})
 			params = {'skey': '', 'opcode': '50', 'gprsId': imei, 'motionIndex': steps, 'battery': battery, 'position': position, 'cliaddr':addr}
-		else if len(l) > 11:
+		#else if len(l) > 11:
 
 
 		#params = urllib.urlencode({'name': 'tom', 'age': 22})
@@ -54,17 +54,26 @@ def gps_packet(l, cliAddr):
 
 	except ValueError, e:
 		#上报数据错误
-		logging.error("ValueError, %s", e);
+		logging.error("ValueError, %s", e)
 	except Exception, e:
-		logging.error("%s", e);
+		logging.error("%s", e)
 
 #IMEI,7,SEC_SWITCH_ON,SEC_SWITCH_OFF
 def modify_gps_package_freq(l):
-	[imei, order, dest] = l
-	command = ",".join([imei, 7, 1])
-	logging.debug("modify gps package frequence, command:%s, destination:%s", command, dest)
-	#s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-	#s.sendto(command, dest)
+	#exec内部 需要import
+	import socket
+	try:
+		[imei, order, destip, destport] = l
+		command = ",".join([imei, order, "1"])
+		logging.debug("modify gps package frequence, command:%s, destination:%s:%s", command, destip, destport)
+		clientSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+		clientSocket.sendto(command, (destip, int(destport)))
+		clientSocket.close()
+	except ValueError, e:
+		#指令数据格式有误
+		logging.error("ValueError, %s", e)
+	except Exception, e:
+		logging.error("%s", e)
 
 #IMEI,16,serverdns,port
 def change_server_ip(l):
@@ -111,16 +120,17 @@ while True:
 					#Report Package 上报数据
 					d = {"888":"RockPacket", "501":"GasPacket", "666":"LowVotageWarning", "500":"AlarmReport", "999":"SOSPacket"}
 					#bool(d.has_key(l[2])) and gps_packet(l) or (exec(d[l[2]] + '()'))
-					if d.has_key(l[2]):
-						exec(d[l[2]] + '()')
+					if d.has_key(l[1]):
+						exec(d[l[1]] + '(l)')
 					else:
 						gps_packet(l, cliAddr)
 					#socket.sendto('Received %s bytes from %s' % len(data), cliAddr)
 				else:
 					#Command 命令
-					dc = {"1":"Deprecated", "2":"soft_reset", "7":"modify_gps_package_freq", "16":"change_server_ip", "17":"change_server_port"}
-					if dc.has_key(l[2]):
-						exec(d[l[2]] + '()')
+					#logging.error(l[1])
+					d = {"1":"Deprecated", "2":"soft_reset", "7":"modify_gps_package_freq", "16":"change_server_ip", "17":"change_server_port"}
+					if d.has_key(l[1]):
+						exec(d[l[1]] + '(l)')
 					else:
 						#不识别的命令
 						logging.debug("unkown command")

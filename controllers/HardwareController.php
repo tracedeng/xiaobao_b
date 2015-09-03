@@ -919,10 +919,14 @@ class HardwareController extends Controller
 		$fp = stream_socket_client("udp://{$ip}:{$port}", $errno, $errstr, 30);
 		//$fp = stream_socket_client("tcp://www.example.com:80", $errno, $errstr, 30);
 		if (!$fp) {
-			Yii::trace("", 'hardware\udp');
+			Yii::trace("create udp socket failed", 'hardware\udp');
 			return false;
 		} 
-		fwrite($fp, "GET / HTTP/1.0\r\nHost: www.example.com\r\nAccept: */*\r\n\r\n");
+		Yii::trace($msg, 'hardware\udp');
+		if(false == fwrite($fp, $msg)) {
+			Yii::trace("udp send msg failed", 'hardware\udp');
+			return false;
+		}
 		//while (!feof($fp)) {
 		//   echo fgets($fp, 1024);
 		//}
@@ -949,10 +953,10 @@ class HardwareController extends Controller
 			Yii::trace("this pet not bind gprs", 'hardware\order');
 			return json_encode(array("errcode"=>20902, "errmsg"=>"pet not bind gprs"));
 		}
-		//下发指令，格式[GPRSID, 7, DSTADDR]
+		//下发指令，格式[GPRSID, 7, IP, PORT]
 		$dst = Snapshot::find()->where(['gprsId'=>$pet["gprsId"], 'closed'=>0])->select('cliAddr')->asArray()->one();
-		Yii::trace($dst, 'hardware\order');
-		$msg = implode(",", array($pet["gprsId"], 7, $dst));
+		$dst = json_decode($dst["cliAddr"], true);
+		$msg = implode(",", array($pet["gprsId"], "7", $dst["ip"], $dst["port"]));
 		Yii::trace($msg, 'hardware\order');
 		if($this->udpSendMsg($msg))
 		{
