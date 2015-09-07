@@ -64,11 +64,15 @@ def modify_gps_package_freq(l):
 	import socket
 	try:
 		[imei, order, destip, destport] = l
-		command = ",".join([imei, order, "1"])
+		command = ",".join([imei, order, "60"])
 		logging.debug("modify gps package frequence, command:%s, destination:%s:%s", command, destip, destport)
 		clientSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 		clientSocket.sendto(command, (destip, int(destport)))
-		clientSocket.close()
+		clientSocket.sendto(command, (destip, int(destport)))
+		#data2, cliAddr2 = clientSocket.recvfrom(1024)
+		#if data2:
+		#	logging.debug("收到数据：%s, 客户端：%s", data2, cliAddr2)
+		#clientSocket.close()
 	except ValueError, e:
 		#指令数据格式有误
 		logging.error("ValueError, %s", e)

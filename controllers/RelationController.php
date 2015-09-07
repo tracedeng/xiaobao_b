@@ -43,6 +43,9 @@ class RelationController extends Controller
 				case 43:
 					//判断是否是好友关系
 					return $this->queryRelationById($post);
+				case 50:
+					//查询好友列表
+					return $this->queryFriendsList($post);
 				default:
 					//不支持的操作，不回包
 					break;
@@ -159,6 +162,37 @@ class RelationController extends Controller
 		}
 
 		return json_encode(array("errcode"=>0, "relation"=>1));
+	}
+
+	public function queryFriendsList($post)
+	{
+		$friends = Relation::find()->where(['phoneNumberA'=>$post["phoneNumber"]])->select('phoneNumberB as friend')->asArray()->all();
+		if(count($friends) == 0)
+		{
+			$friends = Relation::find()->where(['phoneNumberB'=>$post["phoneNumber"]])->select('phoneNumberA as friend')->asArray()->all();
+		}
+		Yii::trace($friends, 'relation\friendsList');
+	    $list = [];
+		foreach($friends as $friend)
+		{
+			Yii::trace($friend, 'relation\friendsList');
+		    array_push($list, $friend["friend"]);
+		}
+
+		/*$phoneNumberB = Account::findOne(['id' => $post["userB"]])->phoneNumber;
+		$relation = new Relation;
+		$relation->setScenario('verify');
+		$relation->phoneNumberA = $post["phoneNumberA"];
+		$relation->phoneNumberB = $phoneNumberB;
+		Yii::trace($relation->attributes, 'circle\fetch');
+
+		if(!$relation->validate())
+		{
+			//非好友关系
+			return json_encode(array("errcode"=>0, "relation"=>0));
+		}*/
+
+		return json_encode(array("errcode"=>0, "relation"=>$list));
 	}
 }
 

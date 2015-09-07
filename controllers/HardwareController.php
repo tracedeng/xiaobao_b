@@ -365,7 +365,7 @@ class HardwareController extends Controller
 			return json_encode(array("errcode"=>20602, "errmsg"=>"pet not bind gprs"));
 		}
 		//找到硬件未关闭的宠物位置信息
-		$position = Snapshot::find()->where(['gprsId'=>$pet["gprsId"], 'closed'=>0])->select('position, time')->asArray()->one();
+		$position = Snapshot::find()->where(['gprsId'=>$pet["gprsId"], 'closed'=>0])->select('position, time, battery')->asArray()->one();
 		Yii::trace($position, 'snapshot\position');
 
 		return json_encode(array("errcode"=>0, "position"=>$position));
