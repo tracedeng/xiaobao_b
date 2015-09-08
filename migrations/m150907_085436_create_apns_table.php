@@ -16,12 +16,23 @@ class m150907_085436_create_apns_table extends Migration
 			"time" => Schema::TYPE_DATETIME . ' NOT NULL',
 	    ], "DEFAULT CHARSET=utf8;");
 
+	    $this->createTable("pushmsg", [
+	    	"id" => Schema::TYPE_BIGPK,
+			"phoneNumber" => Schema::TYPE_STRING . ' NOT NULL',
+			"from" => Schema::TYPE_STRING . ' NOT NULL',
+			"message" => Schema::TYPE_STRING . ' NOT NULL',
+			"addOn" => Schema::TYPE_BIGINT . ' NOT NULL',
+			"deleted" => Schema::TYPE_BOOLEAN . ' DEFAULT 0',
+			"time" => Schema::TYPE_DATETIME . ' NOT NULL',
+	    ], "DEFAULT CHARSET=utf8;");
+
     }
 
     public function down()
     {
         echo "m150907_085436_create_apns_table cannot be reverted.\n";
 		$this->dropTable("apns");
+		$this->dropTable("pushmsg");
 
         //return false;
     }

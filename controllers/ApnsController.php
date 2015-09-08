@@ -11,6 +11,7 @@ use yii\web\Controller;
 use app\models\Account;
 use app\models\Material;
 use app\models\Apns;
+use app\models\Pushmsg;
 
 class ApnsController extends Controller
 {
@@ -42,6 +43,12 @@ class ApnsController extends Controller
 				case 10:
 					//消息推送
 					return $this->pushMessage($post);
+				case 20:
+					//读取助养推送消息列表
+					return $this->querySponsorPushMessage($post);
+				case 21:
+					//处理了助养消息后删除消息
+					return $this->deleteSponsorPushMessage($post);
 				default:
 					//不支持的操作，不回包
 					break;
@@ -93,16 +100,44 @@ class ApnsController extends Controller
 
 	public function queryApnsBadge($post)
 	{
-		$apns = Apns::find()->where(['phoneNumber' => $phoneNumber])->one();
+		$apns = Apns::find()->where(['phoneNumber' => $post["phoneNumber"]])->one();
 
 		$badge = 0;
 		if($apns)
 		{
 			$badge = $apns->badge;
 		}
-		Yii::trace("badge = " . $badge, 'apns\query apns badge');
+		Yii::trace("badge = " . $badge, 'apns\querybadge');
 
 		return json_encode(array("errcode"=>0, "badge"=>$badge));
+	}
+
+	public function querySponsorPushMessage($post)
+	{
+		$messages = Pushmsg::find()->select('id, from, message, addOn as petId, time')->where(['phoneNumber' => $post["phoneNumber"], 'deleted' => 0])->asArray()->all();
+		Yii::trace($messages, 'apns\querySponsor');
+
+		return json_encode(array("errcode"=>0, "message"=>$messages));
+	}
+
+	public function deleteSponsorPushMessage($post)
+	{
+		$message = Pushmsg::find()->where(['id' => $messageId, 'deleted' => 0])->all();
+
+		if(!$message)
+		{
+			Yii::trace("sponsor message not exist", 'apns\deleteSponsor');
+			return json_encode(array("errcode"=>20601, "errmsg"=>"sponsor message not exist"));
+		}
+
+		$message->deleted = 1;
+		if(!$message->save())
+		{
+			Yii::trace("delete sponsor message failed", 'apns\deleteSponsor');
+			return json_encode(array("errcode"=>20602, "errmsg"=>"failed to delete sponsor message"));
+		}
+
+		return json_encode(array("errcode"=>0, "errmsg"=>"delete sponsor message successed"));
 	}
 
 	public function updateApnsBadge($post)
@@ -143,7 +178,36 @@ class ApnsController extends Controller
 		}
 
 		$deviceToken = $apns->token;
+		$type = $post["type"];
+		$message = $post["message"];
+		//$message = "This is a message from xiaobao";
+		$body['aps'] = array('badge' => $apns->badge + 1, 'alert' => $message, 'sound' => 'default');
+		Yii::trace($body, 'apns\pushmessage');
+		$payload = json_encode($body);
+		Yii::trace($payload, 'apns\pushmessage');
+
+		if(0 == $type)
+		{
+			//助养消息，需要保存到列表中
+			$pushmsg = new Pushmsg;
+			$pushmsg->phoneNumber = $post["to"];
+			$pushmsg->from = $post["phoneNumber"];
+			$pushmsg->message = $message;
+			$pushmsg->time = "" . date("Y-m-d H:i:s");
+			$pushmsg->addOn = $post["addOn"];
+			Yii::trace($pushmsg, 'apns\pushmessage');
+			if(!$pushmsg->save())
+			{
+				//保存推送消息失败，认为整个推送失败
+				Yii::trace("failed to save push message", 'apns\pushmessage');
+				return json_encode(array("errcode"=>20601, "errmsg"=>"push to apns server failed"));
+			}
+		}
+		
 		//$deviceToken = '41326e4f90b8aa1ea0ea5c0dc75a274509cfc56d146b019cb44ece868702cf9a';
+		// 推送消息编码成二进制
+		$msg = chr(0) . pack('n', 32) . pack('H*', $deviceToken) . pack('n', strlen($payload)) . $payload;
+
 		$passphrase = "123456";
 		$ckpem = "/media/basic/controllers/ck.pem";
 
@@ -159,17 +223,6 @@ class ApnsController extends Controller
 			return json_encode(array("errcode"=>20601, "errmsg"=>"failed to connect to apns server"));
 			//exit("Failed to connect: $err $errstr" . PHP_EOL);
 		}
-
-		$type = $post["type"];
-		$message = $post["message"];
-		//$message = "This is a message from xiaobao";
-		$body['aps'] = array('badge' => $apns->badge + 1, 'alert' => $message, 'sound' => 'default');
-		Yii::trace($body, 'apns\pushmessage');
-		$payload = json_encode($body);
-		Yii::trace($payload, 'apns\pushmessage');
-		
-		// 推送消息编码成二进制
-		$msg = chr(0) . pack('n', 32) . pack('H*', $deviceToken) . pack('n', strlen($payload)) . $payload;
 		
 		// 发送给apns服务器
 		$result = fwrite($fp, $msg, strlen($msg));
