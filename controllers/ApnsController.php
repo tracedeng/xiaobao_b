@@ -19,10 +19,10 @@ class ApnsController extends Controller
 		$account = new Account;
 		$account->setScenario('verify');
 		$post = $_POST ? $_POST : json_decode(Yii::$app->request->getRawBody(), true);
-		Yii::trace($post, 'relation\operation');
+		Yii::trace($post, 'apns\operation');
 		$account->attributes = $post;
 		$account->skey = $post["skey"];
-		Yii::trace($account->attributes, 'relation\operation');
+		Yii::trace($account->attributes, 'apns\operation');
 		
 		$opcode = $post["opcode"];
 		//验证skey
@@ -62,7 +62,7 @@ class ApnsController extends Controller
 					//不支持的操作
 					return;
 			}
-			Yii::trace($account->getErrors(), 'relation\operation');
+			Yii::trace($account->getErrors(), 'apns\operation');
 			return json_encode(array("errcode"=>$errcode, "errmsg"=>"invalid skey"));
 		}
  	}
@@ -70,14 +70,14 @@ class ApnsController extends Controller
 	public function updateDeviceToken($post)
 	{
 		$userId = Account::findOne(['phoneNumber' => $post["phoneNumber"]])->id;
-		$apns = Apns::find()->where(['phoneNumber' => $phoneNumber])->one();
+		$apns = Apns::find()->where(['phoneNumber' => $post["phoneNumber"]])->one();
 		if(!$apns)
 		{
 			$apns= new Apns;
 		}
 		$apns->token = $post["token"];
 		$apns->phoneNumber = $post["phoneNumber"];
-		$apns->ownerId = $post["ownerId"];
+		$apns->ownerId = $userId;
 		$apns->time = "" . date("Y-m-d H:i:s");
 		Yii::trace($apns->attributes, 'apns\updatetoken');
 
@@ -86,62 +86,9 @@ class ApnsController extends Controller
 			Yii::trace("add device token succeed", 'apns\updatetoken');
 			return json_encode(array("errcode"=>0, "errmsg"=>"add device token succeed"));
 		}else{
-			Yii::trace($relation->getErrors(), 'apns\updatetoken');
+			Yii::trace($apns->getErrors(), 'apns\updatetoken');
 			return json_encode(array("errcode"=>20602, "errmsg"=>"add device token failed"));
 		}
-	}
-
-	public function pushMessage($post)
-	{
-		$apns = Apns::find()->where(["ownerId"=>$post["to"]])->one();
-		if(!apns)
-		{
-			Yii::trace("no apns to destination", 'apns\pushmessage');
-			return json_encode(array("errcode"=>20601, "errmsg"=>"push message failed, no destination"));
-		}
-
-		$deviceToken = $apns->token;
-		//$deviceToken = '41326e4f90b8aa1ea0ea5c0dc75a274509cfc56d146b019cb44ece868702cf9a';
-		$passphrase = "123456";
-		$ckpem = "ck.pem";
-
-		// 连接apns服务器
-		$ctx = stream_context_create();
-		stream_context_set_option($ctx, 'ssl', 'local_cert', 'ck.pem');
-		stream_context_set_option($ctx, 'ssl', 'passphrase', $passphrase);
-		$fp = stream_socket_client('ssl://gateway.sandbox.push.apple.com:2195', $err, $errstr, 60, STREAM_CLIENT_CONNECT|STREAM_CLIENT_PERSISTENT, $ctx);
-		if (!$fp)
-		{
-			Yii::trace("failed to connect to apns server", 'apns\pushmessage');
-			return json_encode(array("errcode"=>20601, "errmsg"=>"failed to connect to apns server"));
-			//exit("Failed to connect: $err $errstr" . PHP_EOL);
-		}
-
-		$type = $post["type"];
-		$message = $post["msg"];
-		//$message = "This is a message from xiaobao";
-		$body['aps'] = array('badge' => $apns->badge + 1, 'alert' => message, 'sound' => 'default');
-		$payload = json_encode($body);
-		
-		// 推送消息编码成二进制
-		$msg = chr(0) . pack('n', 32) . pack('H*', $deviceToken) . pack('n', strlen($payload)) . $payload;
-		
-		// 发送给apns服务器
-		$result = fwrite($fp, $msg, strlen($msg));
-		fclose($fp);
-		if (!$result)
-		{
-			Yii::trace("deliver message to apns failed", 'apns\pushmessage');
-			return json_encode(array("errcode"=>20601, "errmsg"=>"failed to deliver to apns server"));
-		}
-
-		$apns->badge = $apns->badge + 1;
-		if(!$apns->save())
-		{
-			Yii::trace("update badge failed failed", 'apns\pushmessage');
-		}
-
-		return json_encode(array("errcode"=>0, "errmsg"=>"deliver to apns server successed"));
 	}
 
 	public function queryApnsBadge($post)
@@ -183,6 +130,63 @@ class ApnsController extends Controller
 		}
 
 		return json_encode(array("errcode"=>0, "badge"=>$badge));
+	}
+
+	public function pushMessage($post)
+	{
+		//$apns = Apns::find()->where(["ownerId"=>$post["to"]])->one();
+		$apns = Apns::find()->where(["phoneNumber"=>$post["to"]])->one();
+		if(!$apns)
+		{
+			Yii::trace("no apns to destination", 'apns\pushmessage');
+			return json_encode(array("errcode"=>20601, "errmsg"=>"push message failed, no destination"));
+		}
+
+		$deviceToken = $apns->token;
+		//$deviceToken = '41326e4f90b8aa1ea0ea5c0dc75a274509cfc56d146b019cb44ece868702cf9a';
+		$passphrase = "123456";
+		$ckpem = "/media/basic/controllers/ck.pem";
+
+		// 连接apns服务器
+		$ctx = stream_context_create();
+		stream_context_set_option($ctx, 'ssl', 'local_cert', $ckpem);
+		//stream_context_set_option($ctx, 'ssl', 'local_cert', 'ck.pem');
+		stream_context_set_option($ctx, 'ssl', 'passphrase', $passphrase);
+		$fp = stream_socket_client('ssl://gateway.sandbox.push.apple.com:2195', $err, $errstr, 60, STREAM_CLIENT_CONNECT|STREAM_CLIENT_PERSISTENT, $ctx);
+		if (!$fp)
+		{
+			Yii::trace("failed to connect to apns server", 'apns\pushmessage');
+			return json_encode(array("errcode"=>20601, "errmsg"=>"failed to connect to apns server"));
+			//exit("Failed to connect: $err $errstr" . PHP_EOL);
+		}
+
+		$type = $post["type"];
+		$message = $post["message"];
+		//$message = "This is a message from xiaobao";
+		$body['aps'] = array('badge' => $apns->badge + 1, 'alert' => $message, 'sound' => 'default');
+		Yii::trace($body, 'apns\pushmessage');
+		$payload = json_encode($body);
+		Yii::trace($payload, 'apns\pushmessage');
+		
+		// 推送消息编码成二进制
+		$msg = chr(0) . pack('n', 32) . pack('H*', $deviceToken) . pack('n', strlen($payload)) . $payload;
+		
+		// 发送给apns服务器
+		$result = fwrite($fp, $msg, strlen($msg));
+		fclose($fp);
+		if (!$result)
+		{
+			Yii::trace("deliver message to apns failed", 'apns\pushmessage');
+			return json_encode(array("errcode"=>20601, "errmsg"=>"failed to deliver to apns server"));
+		}
+
+		$apns->badge = $apns->badge + 1;
+		if(!$apns->save())
+		{
+			Yii::trace("update badge failed failed", 'apns\pushmessage');
+		}
+
+		return json_encode(array("errcode"=>0, "errmsg"=>"deliver to apns server successed"));
 	}
 }
 

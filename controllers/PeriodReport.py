@@ -120,7 +120,7 @@ while True:
 			if data:
 				logging.debug("收到数据：%s, 客户端：%s", data, cliAddr)
 				l = data.split(',')
-				if len(l[1]) == len('20150531160830'):
+				if ((len(l[1]) == len('20150531160830')) or (len(l[1]) == len('20150909'))):
 					#Report Package 上报数据
 					d = {"888":"RockPacket", "501":"GasPacket", "666":"LowVotageWarning", "500":"AlarmReport", "999":"SOSPacket"}
 					#bool(d.has_key(l[2])) and gps_packet(l) or (exec(d[l[2]] + '()'))
