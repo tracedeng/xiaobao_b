@@ -21,6 +21,9 @@ class m150325_214808_create_hardware_table extends Migration
 			"battery" => Schema::TYPE_SMALLINT . ' DEFAULT 2',
 			"seq" => Schema::TYPE_SMALLINT,
 			"time" => Schema::TYPE_DATETIME . ' NOT NULL',
+			"deviceTime" => Schema::TYPE_DATETIME . ' NOT NULL',
+			"seq" => Schema::TYPE_SMALLINT,
+			"baiduMap" => Schema::TYPE_BOOLEAN . ' DEFAULT 0',
 			'PRIMARY KEY (id, gprsId)',
 	    ], "DEFAULT CHARSET=utf8;");
 
@@ -41,6 +44,8 @@ class m150325_214808_create_hardware_table extends Migration
 			"time" => Schema::TYPE_DATETIME . ' NOT NULL',
 			"closed" => Schema::TYPE_BOOLEAN . ' DEFAULT 0',
 	    	"cliaddr" => Schema::TYPE_STRING . ' DEFAULT ""',
+			"seq" => Schema::TYPE_SMALLINT,
+			"baiduMap" => Schema::TYPE_BOOLEAN . ' DEFAULT 0',
 			'PRIMARY KEY (gprsId)',
 	    ], "DEFAULT CHARSET=utf8;");
 

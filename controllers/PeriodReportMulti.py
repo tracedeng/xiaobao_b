@@ -17,8 +17,8 @@ from logging.handlers import RotatingFileHandler
 __author__ = 'tracedeng'
 
 def init_logger():
-	#Rthandler = RotatingFileHandler('myapp.log', maxBytes=10*1024*1024,backupCount=5)
-	Rthandler = RotatingFileHandler('/var/ftp/pub/myapp.log', maxBytes=10*1024*1024,backupCount=5)
+	Rthandler = RotatingFileHandler('myapp.log', maxBytes=10*1024*1024,backupCount=5)
+	#Rthandler = RotatingFileHandler('/var/ftp/pub/myapp.log', maxBytes=10*1024*1024,backupCount=5)
 	formatter = logging.Formatter('%(asctime)s %(filename)s:%(lineno)s %(name)s[%(process)d] - %(message)s')
 	#formatter = logging.Formatter('%(name)-12s: %(levelname)-8s %(message)s')
 	Rthandler.setFormatter(formatter)
@@ -49,27 +49,23 @@ def event_loop(name):
 				socket = serverSocket
 				#可读事件
 				if event & select.EPOLLIN:
-					data, cliAddr = socket.recvfrom(1024)
+					data, cliaddr = socket.recvfrom(1024)
 					if data:
-						logging.debug("收到数据：%s, 客户端：%s", data, cliAddr)
-						l = data.split(',')
-						if len(l[1]) == len('20150531160830'):
-							#Report Package 上报数据
-							d = {"888":"RockPacket", "501":"GasPacket", "666":"LowVotageWarning", "500":"AlarmReport", "999":"SOSPacket"}
-							#bool(d.has_key(l[2])) and gps_packet(l) or (exec(d[l[2]] + '()'))
-							if d.has_key(l[2]):
-								exec(d[l[2]] + '()')
-							else:
-								gps_packet(l, cliAddr)
-							#socket.sendto('Received %s bytes from %s' % len(data), cliAddr)
-						else:
-							#Command 命令
-							dc = {"1":"Deprecated", "2":"soft_reset", "7":"modify_gps_package_freq", "16":"change_server_ip", "17":"change_server_port"}
-							if dc.has_key(l[2]):
-								exec(d[l[2]] + '()')
-							else:
-								#不识别的命令
-								logging.debug("unkown command")
+						logging.debug("收到数据：%s, 客户端：%s", data, cliaddr)
+						cmd = data[0:1]
+						(data_report if cmd in ['$', '@', '#'] else deal_command)(data, cliaddr)
+						#d = {'$':period_report, '@':realtime_report, '#':nogsm_report}
+						#else:
+						#	#Command 命令
+						#	#dc = {"1":"Deprecated", "2":"soft_reset", "7":"modify_gps_package_freq", "16":"change_server_ip", "17":"change_server_port"}
+						#	#dc = {"1":Deprecated, "2":soft_reset, "7":modify_gps_package_freq, "16":change_server_ip, "17":change_server_port}
+						#	dc = {"7":modify_gps_package_freq, "16":change_server_ip}
+						#	if dc.has_key(l[2]):
+						#		#exec(d[l[2]] + '()')
+						#		dc[l[2]]()
+						#	else:
+						#		#不识别的命令
+						#		logging.debug("unkown command")
 				elif select.EPOLLHUP & events:
 					#epoll_wait被更高级的系统调用打断，忽略这种错误
 					logging.error("epoll interrupt by system")
@@ -79,22 +75,68 @@ def event_loop(name):
 		except Exception, e:
 			logging.debug("%s", e)
 	
-def gps_packet(l, cliAddr):
-	try:
-		[imei, time, lng, lat, lbslng, lbslat, steps, state, chargestate, battery, voltage] = l
-		#[imei, time, lng, lat, pwr, switch, spd, _, _, _, lbslng, lbslat, adc] = l
-		#logging.debug("imei:%s, time:%s, lng:%s, lat:%s, pwr:%s, switch:%s, spd:%s, _:%s, _:%s, _:%s, lbslng:%s, lbslat:%s, adc:%s", l)
-		logging.debug("imei:%s, time:%s, lng:%s, lat:%s, steps:%s, battery:%s, voltage:%s", imei, time, lng, lat, steps, battery, voltage)
+def data_report(data, cliaddr):
+	l = data[1:].split(',')
 
-		ip, port = cliAddr
-		addr = json.JSONEncoder().encode({"ip":cliAddr[0], "port":cliAddr[1]})
-		position = json.JSONEncoder().encode({"lng":lng, "lat":lat})
-		params = {'skey': '', 'opcode': '50', 'gprsId': imei, 'motionIndex': steps, 'battery': battery, 'position': position, 'cliaddr':addr}
+	#设备刚上电，无法获取时间
+	if len(l[1]) == len('20150531160830') or len(l[1]) == len('20150531'):
+		gps_packet(l, cliaddr, data[0:1])
+	else:
+		#不识别的命令
+		logging.debug("unkown command")
+
+def gps_packet(l, cliaddr, type):
+	try:
+		import time
+		serverTime = time.strftime("%Y%m%d%H%M%S", time.localtime())
+		ip, port = cliaddr
+		addr = json.JSONEncoder().encode({"ip":cliaddr[0], "port":cliaddr[1]})
+
+		if type == '#':
+			#丢失gsm信号，多包
+			imei, count = l[0], l[1]
+			count = (len(l) - 2) / 2
+			seq = []
+			motionIndex = []
+			for i in xrange(0, count):
+				seq.append(l[2 + 2 * i])
+				motionIndex.append(l[2 + 2 * i + 1])
+
+			seq = json.JSONEncoder().encode(seq)
+			motionIndex = json.JSONEncoder().encode(motionIndex)
+			position = json.JSONEncoder().encode({"lng":0, "lat":0})
+
+			params = {'skey': '', 'opcode': '50', 'type': '#', 'count' : count, 'gprsId': imei, 'deviceTime': serverTime, 'seq' : seq, 'motionIndex': motionIndex, 'battery': 0, 'position': '', 'baiduMap' : 1, 'cliaddr':addr}
+		else:
+			[imei, time, lng, lat, lbslng, lbslat, steps, state, chargestate, battery, voltage] = l
+			logging.debug("imei:%s, time:%s, lng:%s, lat:%s, steps:%s, battery:%s, voltage:%s", imei, time, lng, lat, steps, battery, voltage)
+
+			#20分钟周期上报数据转换成序号
+			seq = 0;
+			if type == '$':
+				if len(l[1]) == len('20150531160830'):
+					seq = int(time[8:10]) * 3 + int(time[10:12]) / 20 + 1
+				else:
+					seq = int(serverTime[8:10]) * 3 + int(serverTime[10:12]) / 20 + 1
+
+			seq = json.JSONEncoder().encode([seq])
+			motionIndex = json.JSONEncoder().encode([steps])
+
+			if 1:
+				#火星坐标转换
+				if (len(lng) != 0) and (len(lat) != 0):
+					lng = float(lng)
+					lat = float(lat)
+					lng = lng // 100 + (lng / 100 - lng // 100) * 100 / 60
+					lat = lat // 100 + (lat / 100 - lat // 100) * 100 / 60
+			position = json.JSONEncoder().encode({"lng":lng, "lat":lat})
+			params = {'skey': '', 'opcode': '50', 'type': type, 'count': '1', 'gprsId': imei, 'deviceTime': time, 'seq' : seq, 'motionIndex': motionIndex, 'battery': battery, 'position': position, 'baiduMap' : 1, 'cliaddr':addr}
+			#params = {'skey': '', 'opcode': '50', 'type': type, 'count': '1', 'gprsId': imei, 'devicetime': time, 'seq' : seq, 'motionIndex': steps, 'battery': battery, 'position': position, 'baiduMap' : 1, 'cliaddr':addr}
 
 		#params = urllib.urlencode({'name': 'tom', 'age': 22})
-		headers = {"Content-type": "application/x-www-form-urlencoded", "Accept": "text/plain"}
-		#logging.debug("params:%s", params)
+		logging.debug("params:%s", params)
 		params = urllib.urlencode(params)
+		headers = {"Content-type": "application/x-www-form-urlencoded", "Accept": "text/plain"}
 		conn = httplib.HTTPConnection("182.254.159.219", 80, timeout = 1)
 		conn.request("POST", "/basic/web/?r=hardware/operate", params, headers)
 		response = conn.getresponse()
@@ -105,6 +147,9 @@ def gps_packet(l, cliAddr):
 		logging.error("ValueError, %s", e);
 	except Exception, e:
 		logging.error("%s", e);
+
+def deal_command(data, cliaddr):
+	pass	
 
 #IMEI,7,SEC_SWITCH_ON,SEC_SWITCH_OFF
 def modify_gps_package_freq(l):
@@ -125,7 +170,7 @@ init_logger()
 try:
 	serverSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 	serverSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-	server_address = ("0.0.0.0", 9527)
+	server_address = ("0.0.0.0", 9528)
 	#server_address = ("115.47.56.129", 9527)
 	serverSocket.bind(server_address)
 	# serverSocket.listen(1)
