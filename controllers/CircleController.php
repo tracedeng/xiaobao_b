@@ -505,13 +505,14 @@ class CircleController extends Controller
 		    $thumbIds = array($userId);
 	       	    $circle->thumb++;	//点赞人数加1
 	    }else{
-	       	    $thumbIds = json_decode($circle->thumbOwnerIds, true);
-	       	    if(in_array($userId, $thumbIds))
-	       	    {
-	            	    Yii::trace("user has thumbed already", 'circle\thumb');
+	    	$thumbIds = json_decode($circle->thumbOwnerIds, true);
+			if(in_array($userId, $thumbIds))
+	        {
+	         	Yii::trace("user has thumbed already", 'circle\thumb');
+	            return json_encode(array("errcode"=>20403, "errmsg"=>"user thumb already"));
 		    }else{
 			    array_push($thumbIds, $userId);
-	       	    	    $circle->thumb++;	//点赞人数加1
+	       	    $circle->thumb++;	//点赞人数加1
 		    }
 	    }
 	    $circle->thumbOwnerIds = json_encode($thumbIds);
@@ -520,7 +521,7 @@ class CircleController extends Controller
 	    if($circle->save())
 	    {
 	            Yii::trace("thumb a cricle succeed", 'circle\thumb');
-	            return json_encode(array("errcode"=>0, "errmsg"=>"thumb a circle succeed"));
+	            return json_encode(array("errcode"=>0, "errmsg"=>"thumb a circle succeed", "thumb"=>$circle->thumb));
 	            //return json_encode(array("errcode"=>0, "errmsg"=>"thumb a circle succeed", "id"=>$userId, "nickname"=>$nickname));
 	    }else{
 	            Yii::trace($account->getErrors(), 'circle\thumb');
@@ -564,7 +565,8 @@ class CircleController extends Controller
 	    if($circle->save())
 	    {
 	            Yii::trace("cancel thumb a cricle succeed", 'circle\cancelThumb');
-	            return json_encode(array("errcode"=>0, "errmsg"=>"cancel thumb a circle succeed"));
+	            //return json_encode(array("errcode"=>0, "errmsg"=>"cancel thumb a circle succeed"));
+	            return json_encode(array("errcode"=>0, "errmsg"=>"cancel thumb a circle succeed", "thumb"=>$circle->thumb));
 	            //return json_encode(array("errcode"=>0, "errmsg"=>"cancel thumb a circle succeed", "id"=>$userId, "nickname"=>$nickname));
 	    }else{
 	            Yii::trace($account->getErrors(), 'circle\cancelThumb');

@@ -80,8 +80,10 @@ def modify_gps_package_freq(l):
 		logging.error("%s", e)
 
 #IMEI,16,serverdns,port
-def change_server_ip(l):
-	command = ','.join(l)
+def change_server_ip(l, cliAddr):
+	#command = ','.join(l)
+	global serverSocket
+	serverSocket.sendto("yeesssss", cliAddr)
 
 init_logger()
 try:
@@ -130,11 +132,14 @@ while True:
 						gps_packet(l, cliAddr)
 					#socket.sendto('Received %s bytes from %s' % len(data), cliAddr)
 				else:
+					#测试能否发回局域网
+					#socket.sendto("yeesssss", cliAddr)
+					#continue
 					#Command 命令
 					#logging.error(l[1])
 					d = {"1":"Deprecated", "2":"soft_reset", "7":"modify_gps_package_freq", "16":"change_server_ip", "17":"change_server_port"}
 					if d.has_key(l[1]):
-						exec(d[l[1]] + '(l)')
+						exec(d[l[1]] + '(l, cliAddr)')
 					else:
 						#不识别的命令
 						logging.debug("unkown command")

@@ -122,7 +122,7 @@ class ApnsController extends Controller
 
 	public function deleteSponsorPushMessage($post)
 	{
-		$message = Pushmsg::find()->where(['id' => $messageId, 'deleted' => 0])->all();
+		$message = Pushmsg::find()->where(['id' => $post["messageId"], 'deleted' => 0])->one();
 
 		if(!$message)
 		{
@@ -142,7 +142,7 @@ class ApnsController extends Controller
 
 	public function updateApnsBadge($post)
 	{
-		$apns = Apns::find()->where(['phoneNumber' => $phoneNumber])->one();
+		$apns = Apns::find()->where(['phoneNumber' => $post["phoneNumber"]])->one();
 
 		$badge = -1;
 		if($apns)
@@ -204,7 +204,8 @@ class ApnsController extends Controller
 			}
 		}
 		
-		//$deviceToken = '41326e4f90b8aa1ea0ea5c0dc75a274509cfc56d146b019cb44ece868702cf9a';
+		//$deviceToken = '<41326e4f 90b8aa1e a0ea5c0d c75a2745 09cfc56d 146b019c b44ece86 8702cf9a>';
+		//$deviceToken = '<41326e4f 90b8aa1e a0ea5c0d c75a2745 09cfc56d146b019cb44ece868702cf9a';
 		// 推送消息编码成二进制
 		$msg = chr(0) . pack('n', 32) . pack('H*', $deviceToken) . pack('n', strlen($payload)) . $payload;
 

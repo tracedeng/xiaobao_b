@@ -149,15 +149,33 @@ def gps_packet(l, cliaddr, type):
 		logging.error("%s", e);
 
 def deal_command(data, cliaddr):
-	pass	
+	dc = {"7":modify_gps_package_freq, "16":change_server_ip}
+
+	l = data.split(',')
+	dc.get(l[1])(l)
 
 #IMEI,7,SEC_SWITCH_ON,SEC_SWITCH_OFF
 def modify_gps_package_freq(l):
-	dest = (l[4], l[5])
-	command = ",".join(l[0:4])
-	logging.debug("modify gps package frequence, command:%s, destination:%s", command, dest)
-	s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-	s.sendto(command, dest)
+	#exec内部 需要import
+	global serverSocket
+	import socket
+	try:
+		[imei, order, destip, destport] = l
+		command = ",".join([imei, order, "60"])
+		logging.debug("modify gps package frequence, command:%s, destination:%s:%s", command, destip, destport)
+		#clientSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+		#clientSocket.sendto(command, (destip, int(destport)))
+		#clientSocket.sendto(command, (destip, int(destport)))
+		serverSocket.sendto(command, (destip, int(destport)))
+		#data2, cliAddr2 = clientSocket.recvfrom(1024)
+		#if data2:
+		#	logging.debug("收到数据：%s, 客户端：%s", data2, cliAddr2)
+		#clientSocket.close()
+	except ValueError, e:
+		#指令数据格式有误
+		logging.error("ValueError, %s", e)
+	except Exception, e:
+		logging.error("%s", e)
 
 #IMEI,16,serverdns,port
 def change_server_ip(l):
@@ -170,7 +188,7 @@ init_logger()
 try:
 	serverSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 	serverSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-	server_address = ("0.0.0.0", 9528)
+	server_address = ("0.0.0.0", 9527)
 	#server_address = ("115.47.56.129", 9527)
 	serverSocket.bind(server_address)
 	# serverSocket.listen(1)

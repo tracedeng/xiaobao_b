@@ -712,8 +712,8 @@ class PetController extends Controller
 
 		$sponsorId = Account::findOne(['phoneNumber' => $post["sponsor"]])->id;
 		$sponsor = new Sponsor;
-		$sponsor->petId = $petid;
-		$sponsor->sponsorId = $id;
+		$sponsor->petId = $petId;
+		$sponsor->sponsorId = $sponsorId;
 		$sponsor->sponsorTime = "" . date("Y-m-d H:i:s");
 		Yii::trace($sponsor, 'pet\sponsor');
 		if($sponsor->save())
@@ -768,21 +768,9 @@ class PetController extends Controller
 		}
 		Yii::trace($cooKinds, 'pet\queryKinds');
                 
-                //配置 图片文件 在服务器的目录
-                /*$ip = "http://182.254.159.219/";
-                $img_path = "basic/data/petkind/";
-                $url =$ip.$img_path;
-               */ 
 		$kinds = array();
 		foreach($cooKinds as $key=>$value)
 		{
-			/*
-                        foreach ($value as $key2 => $value2) {
-                            if(!empty($value2['image'])){
-                                $value[$key2]['image'] = $url.$value2['image'].".png";
-                            }
-                        }
-						*/
 			array_push($kinds, array("section"=>$key, "kinds"=>$value));
 		}
 		Yii::trace($kinds, 'pet\queryKinds');

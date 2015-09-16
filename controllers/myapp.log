@@ -191,3 +191,56 @@
 2015-09-10 19:31:48,528 PeriodReportMulti.py:54 root[4113] - 收到数据：@860719120000028,20150901113010,12123.84983,3110.84462,,,626,5,60,74,39983, 客户端：('101.93.78.146', 60878)
 2015-09-10 19:31:48,528 PeriodReportMulti.py:112 root[4113] - imei:860719120000028, time:20150901113010, lng:12123.84983, lat:3110.84462, steps:626, battery:74, voltage:39983
 2015-09-10 19:31:48,528 PeriodReportMulti.py:137 root[4113] - params:{'deviceTime': '20150901113010', 'seq': '[0]', 'battery': '74', 'baiduMap': 1, 'count': '1', 'skey': '', 'motionIndex': '["626"]', 'cliaddr': '{"ip": "101.93.78.146", "port": 60878}', 'gprsId': '860719120000028', 'opcode': '50', 'position': '{"lat": 31.180743666666665, "lng": 121.39749716666665}', 'type': '@'}
+2015-09-12 10:34:59,961 PeriodReportMulti.py:204 root[14733] - 服务器启动成功，监听IP：('0.0.0.0', 9528)
+2015-09-12 10:40:09,167 PeriodReportMulti.py:54 root[14733] - 收到数据：860719020065236,7,223.104.5.229,27551, 客户端：('180.166.124.18', 2963)
+2015-09-12 10:40:09,167 PeriodReportMulti.py:164 root[14733] - modify gps package frequence, command:860719020065236,7,60, destination:223.104.5.229:27551
+2015-09-12 10:41:44,793 PeriodReportMulti.py:54 root[14735] - 收到数据：860719020065236,7,223.104.5.229,27551, 客户端：('180.166.124.18', 2964)
+2015-09-12 10:41:44,794 PeriodReportMulti.py:164 root[14735] - modify gps package frequence, command:860719020065236,7,60, destination:223.104.5.229:27551
+2015-09-12 10:42:32,101 PeriodReportMulti.py:54 root[14733] - 收到数据：860719020065236,7,0.0.0.0,9527, 客户端：('180.166.124.18', 2965)
+2015-09-12 10:42:32,101 PeriodReportMulti.py:164 root[14733] - modify gps package frequence, command:860719020065236,7,60, destination:0.0.0.0:9527
+2015-09-12 10:43:45,939 PeriodReportMulti.py:54 root[14735] - 收到数据：860719020065236,7,182.254.159.219,9527, 客户端：('180.166.124.18', 2966)
+2015-09-12 10:43:45,940 PeriodReportMulti.py:164 root[14735] - modify gps package frequence, command:860719020065236,7,60, destination:182.254.159.219:9527
+2015-09-12 10:44:40,401 PeriodReportMulti.py:54 root[14735] - 收到数据：860719020065236,7,223.104.5.229,27551, 客户端：('180.166.124.18', 2967)
+2015-09-12 10:44:40,401 PeriodReportMulti.py:164 root[14735] - modify gps package frequence, command:860719020065236,7,60, destination:223.104.5.229:27551
+2015-09-12 10:44:46,900 PeriodReportMulti.py:54 root[14734] - 收到数据：860719020065236,7,223.104.5.229,27551, 客户端：('180.166.124.18', 2968)
+2015-09-12 10:44:46,901 PeriodReportMulti.py:164 root[14734] - modify gps package frequence, command:860719020065236,7,60, destination:223.104.5.229:27551
+2015-09-12 10:44:47,515 PeriodReportMulti.py:54 root[14734] - 收到数据：860719020065236,7,223.104.5.229,27551, 客户端：('180.166.124.18', 2969)
+2015-09-12 10:44:47,515 PeriodReportMulti.py:164 root[14734] - modify gps package frequence, command:860719020065236,7,60, destination:223.104.5.229:27551
+2015-09-12 10:45:03,165 PeriodReportMulti.py:54 root[14736] - 收到数据：860719020065236,7,223.104.5.229,27551, 客户端：('180.166.124.18', 2970)
+2015-09-12 10:45:03,166 PeriodReportMulti.py:164 root[14736] - modify gps package frequence, command:860719020065236,7,60, destination:223.104.5.229:27551
+2015-09-12 10:59:41,201 PeriodReportMulti.py:54 root[14735] - 收到数据：860719020065236,7,223.104.5.229,27551, 客户端：('180.166.124.18', 2971)
+2015-09-12 10:59:41,201 PeriodReportMulti.py:164 root[14735] - modify gps package frequence, command:860719020065236,7,60, destination:223.104.5.229:27551
+2015-09-12 11:00:23,560 PeriodReportMulti.py:54 root[14733] - 收到数据：860719020065236,7,223.104.5.229,27551, 客户端：('180.166.124.18', 2972)
+2015-09-12 11:00:23,560 PeriodReportMulti.py:164 root[14733] - modify gps package frequence, command:860719020065236,7,60, destination:223.104.5.229:27551
+2015-09-12 11:00:31,096 PeriodReportMulti.py:54 root[14734] - 收到数据：860719020065236,7,223.104.5.229,27551, 客户端：('180.166.124.18', 2973)
+2015-09-12 11:00:31,097 PeriodReportMulti.py:164 root[14734] - modify gps package frequence, command:860719020065236,7,60, destination:223.104.5.229:27551
+2015-09-12 11:00:31,642 PeriodReportMulti.py:54 root[14735] - 收到数据：860719020065236,7,223.104.5.229,27551, 客户端：('180.166.124.18', 2974)
+2015-09-12 11:00:31,642 PeriodReportMulti.py:164 root[14735] - modify gps package frequence, command:860719020065236,7,60, destination:223.104.5.229:27551
+2015-09-12 11:00:31,874 PeriodReportMulti.py:54 root[14735] - 收到数据：860719020065236,7,223.104.5.229,27551, 客户端：('180.166.124.18', 2975)
+2015-09-12 11:00:31,874 PeriodReportMulti.py:164 root[14735] - modify gps package frequence, command:860719020065236,7,60, destination:223.104.5.229:27551
+2015-09-12 11:00:37,046 PeriodReportMulti.py:54 root[14736] - 收到数据：860719020065236,7,223.104.5.229,27551, 客户端：('180.166.124.18', 2976)
+2015-09-12 11:00:37,058 PeriodReportMulti.py:164 root[14736] - modify gps package frequence, command:860719020065236,7,60, destination:223.104.5.229:27551
+2015-09-12 11:00:39,396 PeriodReportMulti.py:54 root[14736] - 收到数据：860719020065236,7,223.104.5.229,27551, 客户端：('180.166.124.18', 2977)
+2015-09-12 11:00:39,396 PeriodReportMulti.py:164 root[14736] - modify gps package frequence, command:860719020065236,7,60, destination:223.104.5.229:27551
+2015-09-12 11:00:39,580 PeriodReportMulti.py:54 root[14736] - 收到数据：860719020065236,7,223.104.5.229,27551, 客户端：('180.166.124.18', 2978)
+2015-09-12 11:00:39,580 PeriodReportMulti.py:164 root[14736] - modify gps package frequence, command:860719020065236,7,60, destination:223.104.5.229:27551
+2015-09-12 11:00:39,770 PeriodReportMulti.py:54 root[14733] - 收到数据：860719020065236,7,223.104.5.229,27551, 客户端：('180.166.124.18', 2979)
+2015-09-12 11:00:39,770 PeriodReportMulti.py:164 root[14733] - modify gps package frequence, command:860719020065236,7,60, destination:223.104.5.229:27551
+2015-09-12 11:00:39,988 PeriodReportMulti.py:54 root[14736] - 收到数据：860719020065236,7,223.104.5.229,27551, 客户端：('180.166.124.18', 2980)
+2015-09-12 11:00:39,988 PeriodReportMulti.py:164 root[14736] - modify gps package frequence, command:860719020065236,7,60, destination:223.104.5.229:27551
+2015-09-12 11:00:40,147 PeriodReportMulti.py:54 root[14733] - 收到数据：860719020065236,7,223.104.5.229,27551, 客户端：('180.166.124.18', 2981)
+2015-09-12 11:00:40,147 PeriodReportMulti.py:164 root[14733] - modify gps package frequence, command:860719020065236,7,60, destination:223.104.5.229:27551
+2015-09-12 11:00:40,354 PeriodReportMulti.py:54 root[14733] - 收到数据：860719020065236,7,223.104.5.229,27551, 客户端：('180.166.124.18', 2982)
+2015-09-12 11:00:40,355 PeriodReportMulti.py:164 root[14733] - modify gps package frequence, command:860719020065236,7,60, destination:223.104.5.229:27551
+2015-09-12 11:05:32,661 PeriodReportMulti.py:54 root[14734] - 收到数据：860719020065236,7,223.104.5.229,27551, 客户端：('180.166.124.18', 2983)
+2015-09-12 11:05:32,661 PeriodReportMulti.py:164 root[14734] - modify gps package frequence, command:860719020065236,7,60, destination:223.104.5.229:27551
+2015-09-14 15:25:12,795 PeriodReportMulti.py:206 root[1505] - 服务器启动成功，监听IP：('0.0.0.0', 9528)
+2015-09-14 15:26:08,250 PeriodReportMulti.py:206 root[1540] - 服务器启动成功，监听IP：('0.0.0.0', 9527)
+2015-09-14 21:44:21,245 PeriodReportMulti.py:54 root[1540] - 收到数据：860719120000038,7,117.131.3.212,25407, 客户端：('127.0.0.1', 50704)
+2015-09-14 21:44:21,245 PeriodReportMulti.py:165 root[1540] - modify gps package frequence, command:860719120000038,7,60, destination:117.131.3.212:25407
+2015-09-16 10:53:46,366 PeriodReportMulti.py:54 root[1541] - 收到数据：860719120000042,20150101,,,,,0,0,0,65,3927, 客户端：('117.131.3.104', 24722)
+2015-09-16 10:53:46,366 PeriodReportMulti.py:76 root[1541] - 'NoneType' object is not callable
+2015-09-16 10:54:03,498 PeriodReportMulti.py:54 root[1540] - 收到数据：860719120000027,20150101025401,,,,,0,0,0,74,3992, 客户端：('117.131.3.179', 24275)
+2015-09-16 10:54:03,498 PeriodReportMulti.py:76 root[1540] - 'NoneType' object is not callable
+2015-09-16 11:23:48,705 PeriodReportMulti.py:54 root[1541] - 收到数据：860719120000044,20150916032347,,,,,0,0,0,64,3916, 客户端：('117.131.3.62', 24975)
+2015-09-16 11:23:48,705 PeriodReportMulti.py:76 root[1541] - 'NoneType' object is not callable
