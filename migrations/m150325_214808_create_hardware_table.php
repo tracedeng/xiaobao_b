@@ -9,7 +9,7 @@ class m150325_214808_create_hardware_table extends Migration
     {
 	    //所有上报数据
 	    $this->createTable("hardware", [
-	    	"id" => Schema::TYPE_BIGINT . ' NOT NULL',
+	    	"id" => Schema::TYPE_BIGPK,
 			"gprsId" => Schema::TYPE_STRING . ' DEFAULT ""',
 			"position" => Schema::TYPE_STRING . ' DEFAULT ""',
 			"positionGeo5" => Schema::TYPE_STRING . ' DEFAULT ""',
@@ -24,7 +24,6 @@ class m150325_214808_create_hardware_table extends Migration
 			"deviceTime" => Schema::TYPE_DATETIME . ' NOT NULL',
 			"seq" => Schema::TYPE_SMALLINT,
 			"baiduMap" => Schema::TYPE_BOOLEAN . ' DEFAULT 0',
-			'PRIMARY KEY (id, gprsId)',
 	    ], "DEFAULT CHARSET=utf8;");
 
 	    //当前最新数据，petid是宠物ID，省去查宠物表

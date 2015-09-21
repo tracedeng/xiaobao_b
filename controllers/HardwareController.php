@@ -17,6 +17,9 @@ use app\models\PetFood;
 use app\models\Sos;
 use app\models\Seqno;
 
+#define APILOCATEKEY "668a16aa6ef2c470aa71a93b89e61e56"
+#define TRANSKEY "24271aa45ec8ebf642870aa47743b763"
+
 class GeoHash
 {
     private static $table = "0123456789bcdefghjkmnpqrstuvwxyz";
@@ -979,20 +982,22 @@ class HardwareController extends Controller
 	{
 		//Yii::trace("count = " . $count, 'hardware\rawdata');
 		//Yii::trace(json_decode($post["seq"], true), 'hardware\rawdata');
-		$seqs = json_decode($post["seq"], true);
+		#$seqs = json_decode($post["seq"], true);
 		$motionIndexs = json_decode($post["motionIndex"], true);
-		$count = $post["count"];
-		$count = $count < count($seqs) ? $count : count($seqs);
-		$count = $count < count($motionIndexs) ? $count : count($motionIndexs);
+		#$count = $post["count"];
+		#$count = $count < count($seqs) ? $count : count($seqs);
+		#$count = $count < count($motionIndexs) ? $count : count($motionIndexs);
+		$count = count($motionIndexs);
 		Yii::trace("count = " . $count, 'hardware\rawdata');
 
 		$type = $post["type"];
+		$seq = $post["seq"];
 		$gprsId = $post['gprsId'];
 		$battery = $post['battery'];
 		$cliaddr = $post['cliaddr'];
 		$position = $post["position"];
 		$deviceTime = $post["deviceTime"];
-		$baiduMap = $post["baiduMap"];
+		$trans = $post["trans"];
 
 			//刚上电数据，只跟新snapshot的IP
 			//if('%' == $type)
@@ -1012,14 +1017,73 @@ class HardwareController extends Controller
 			//	}
 			//}
 
-			Yii::trace("position=" . $position, 'hardware\rawdata');
-			$position = json_decode($position, true);
-			Yii::trace($position, 'hardware\rawdata');
-			$positionGeo9 = GeoHash::encode($position["lng"], $position["lat"]);
-			Yii::trace($positionGeo9, 'hardware\rawdata');
+		Yii::trace("position=" . $position, 'hardware\rawdata');
+		$position = json_decode($position, true);
+		Yii::trace($position, 'hardware\rawdata');
 
-			$positionGeo9Expand = GeoHash::expand($positionGeo9);
-			Yii::trace($positionGeo9Expand, 'hardware\rawdata');
+		if($trans == 1)
+		{
+			//高德定位
+			$bts=join(",", array('460', '00', $position["lac"], $position["cellid"], $position["signal"]));
+			$argv = array( 
+				'accesstype'=>'0',
+				'imei'=>'',
+				'cdma'=>0,
+				'output'=>'json',
+				'key'=>"668a16aa6ef2c470aa71a93b89e61e56",
+				'bts'=>$bts,
+				);
+			$params = http_build_query($argv);
+			$url = "http://apilocate.amap.com/position?" . $params; //提交的url地址
+	    	Yii::trace($url, 'hardware\rawdata');
+			
+			$opts = array( 
+				'http'=>array( 
+					'method'=>"GET", 
+					'timeout'=>60, 
+				) 
+			); 
+			$context = stream_context_create($opts); 
+	    	Yii::trace($context, 'hardware\rawdata');
+			$result = file_get_contents($url, false, $context);
+			$result = json_decode($result, true);
+			if($result["status"] == "1") 
+			{
+				$location = explode(",", $result["result"]["location"]);
+				$position["lng"] = $location[0];
+				$position["lat"] = $location[1];
+			}else{
+				$position["lng"] = 0;
+				$position["lat"] = 0;
+			}
+		}else if($trans == 2){
+			//高德坐标转换
+			$argv = array( 
+				'locations'=>join(",", array($position["lng"], $position["lat"])),
+				'coordsys'=>'gps',
+				'output'=>'json',
+				'key'=>"24271aa45ec8ebf642870aa47743b763",
+				);
+			$params = http_build_query($argv);
+			$url = "http://restapi.amap.com/v3/assistant/coordinate/convert?" . $params; //提交的url地址
+	    	Yii::trace($url, 'hardware\rawdata');
+			
+			$opts = array( 
+				'http'=>array( 
+					'method'=>"GET", 
+					'timeout'=>60, 
+				) 
+			); 
+			$context = stream_context_create($opts); 
+	    	Yii::trace($context, 'hardware\rawdata');
+			$result = file_get_contents($url, false, $context);
+		}
+
+		$positionGeo9 = GeoHash::encode($position["lng"], $position["lat"]);
+		Yii::trace($positionGeo9, 'hardware\rawdata');
+
+		$positionGeo9Expand = GeoHash::expand($positionGeo9);
+		Yii::trace($positionGeo9Expand, 'hardware\rawdata');
 
 		for($i = 0; $i < $count; $i++)
 		{
@@ -1027,14 +1091,15 @@ class HardwareController extends Controller
 			$motionIndex = $motionIndexs[$i];
 
 			//实时传感器数据
-			$sql = 'select id from hardware where time = (select max(time) from hardware where gprsId = "' . $gprsId . '") and gprsId = "' . $gprsId . '"  order by id desc';
-			$max = Hardware::findBySql($sql)->one();
-			//一周数据量 3 * 24 * 7 = 504
-			$max = $max ? ($max->id + 1) : 1;
-			#$max = $max ? ($max->id > 503 ? 1 : ($max->id + 1)) : 1;
-			Yii::trace("max=" . $max, 'hardware\rawdata');
+			#$sql = 'select id from hardware where time = (select max(time) from hardware where gprsId = "' . $gprsId . '") and gprsId = "' . $gprsId . '"  order by id desc';
+			#$max = Hardware::findBySql($sql)->one();
+			#//一周数据量 3 * 24 * 7 = 504
+			#$max = $max ? ($max->id + 1) : 1;
+			##$max = $max ? ($max->id > 503 ? 1 : ($max->id + 1)) : 1;
+			#Yii::trace("max=" . $max, 'hardware\rawdata');
 
-			$ripeData = Hardware::find()->where(['gprsId' => $gprsId, 'id' => $max])->one();
+			#$ripeData = Hardware::find()->where(['gprsId' => $gprsId, 'id' => $max])->one();
+			$ripeData = Hardware::find()->where(['gprsId' => $gprsId, 'seq' => $seq])->one();
 			if(!$ripeData)
 			{
 				$ripeData = new Hardware;

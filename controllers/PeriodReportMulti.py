@@ -17,8 +17,8 @@ from logging.handlers import RotatingFileHandler
 __author__ = 'tracedeng'
 
 def init_logger():
-	Rthandler = RotatingFileHandler('myapp.log', maxBytes=10*1024*1024,backupCount=5)
-	#Rthandler = RotatingFileHandler('/var/ftp/pub/myapp.log', maxBytes=10*1024*1024,backupCount=5)
+	#Rthandler = RotatingFileHandler('myapp.log', maxBytes=10*1024*1024,backupCount=5)
+	Rthandler = RotatingFileHandler('/var/ftp/pub/myapp.log', maxBytes=10*1024*1024,backupCount=5)
 	formatter = logging.Formatter('%(asctime)s %(filename)s:%(lineno)s %(name)s[%(process)d] - %(message)s')
 	#formatter = logging.Formatter('%(name)-12s: %(levelname)-8s %(message)s')
 	Rthandler.setFormatter(formatter)
@@ -53,7 +53,7 @@ def event_loop(name):
 					if data:
 						logging.debug("收到数据：%s, 客户端：%s", data, cliaddr)
 						cmd = data[0:1]
-						(data_report if cmd in ['$', '@', '#'] else deal_command)(data, cliaddr)
+						(data_report if cmd in ['$', '@', '#', '!'] else deal_command)(data, cliaddr)
 						#d = {'$':period_report, '@':realtime_report, '#':nogsm_report}
 						#else:
 						#	#Command 命令
@@ -94,44 +94,58 @@ def gps_packet(l, cliaddr, type):
 
 		if type == '#':
 			#丢失gsm信号，多包
-			imei, count = l[0], l[1]
-			count = (len(l) - 2) / 2
-			seq = []
+			imei = l[0]
 			motionIndex = []
-			for i in xrange(0, count):
-				seq.append(l[2 + 2 * i])
-				motionIndex.append(l[2 + 2 * i + 1])
+			for motion in l[1:]:
+				motionIndex.append(motion)
 
 			seq = json.JSONEncoder().encode(seq)
 			motionIndex = json.JSONEncoder().encode(motionIndex)
 			position = json.JSONEncoder().encode({"lng":0, "lat":0})
 
-			params = {'skey': '', 'opcode': '50', 'type': '#', 'count' : count, 'gprsId': imei, 'deviceTime': serverTime, 'seq' : seq, 'motionIndex': motionIndex, 'battery': 0, 'position': '', 'baiduMap' : 1, 'cliaddr':addr}
-		else:
-			[imei, time, lng, lat, lbslng, lbslat, steps, state, chargestate, battery, voltage] = l
-			logging.debug("imei:%s, time:%s, lng:%s, lat:%s, steps:%s, battery:%s, voltage:%s", imei, time, lng, lat, steps, battery, voltage)
-
+			params = {'skey': '', 'opcode': '50', 'type': '#', 'gprsId': imei, 'deviceTime': serverTime, 'seq' : 0, 'motionIndex': motionIndex, 'battery': 0, 'position': position, 'trans' : 0, 'cliaddr':addr}
+		elif type is '$':
 			#20分钟周期上报数据转换成序号
-			seq = 0;
-			if type == '$':
-				if len(l[1]) == len('20150531160830'):
-					seq = int(time[8:10]) * 3 + int(time[10:12]) / 20 + 1
-				else:
-					seq = int(serverTime[8:10]) * 3 + int(serverTime[10:12]) / 20 + 1
+			[imei, time, lac, cellid, signal, imsi, steps, chargestate, battery, voltage] = l
+			logging.debug("imei:%s, time:%s, lac:%s, cellid:%s, signal:%s, steps:%s, chargestate:%s, battery:%s, voltage:%s, imsi:%s", 
+				imei, time, lac, cellid, signal, steps, chargestate, battery, voltage, imsi)
 
-			seq = json.JSONEncoder().encode([seq])
+			if len(l[1]) == len('20150531160830'):
+				seq = int(time[8:10]) * 3 + int(time[10:12]) / 20 + 1
+			else:
+				seq = int(serverTime[8:10]) * 3 + int(serverTime[10:12]) / 20 + 1
+
 			motionIndex = json.JSONEncoder().encode([steps])
+			signal = (int)(signal) * 2 - 113
+			position = json.JSONEncoder().encode({"lac":lac, "cellid":cellid, 'signal':signal})
+			params = {'skey': '', 'opcode': '50', 'type': '$', 'gprsId': imei, 'deviceTime': time, 'seq' : seq, 'motionIndex': motionIndex, 'battery': battery, 'position': position, 'trans' : 1, 'cliaddr':addr}
+		elif type is '@':
+			#实时定位
+			[imei, time, lng, lat, lac, cellid, signal, steps, chargestate, battery, voltage, imsi] = l
+			logging.debug("imei:%s, time:%s, lng:%s, ;at:%s, lac:%s, cellid:%s, signal:%s, steps:%s, chargestate:%s, battery:%s, voltage:%s, imsi:%s", 
+				imei, time, lng, lat, lac, cellid, signal, steps, chargestate, battery, voltage, imsi)
 
-			if 1:
+			if lng is '' or lat is '' or lng is '0' or lat is '0':
+				#没有GPS信号
+				position = json.JSONEncoder().encode({"lac":lac, "cellid":cellid, 'signal':signal})
+				trans = 1;
+			else:
 				#火星坐标转换
-				if (len(lng) != 0) and (len(lat) != 0):
-					lng = float(lng)
-					lat = float(lat)
-					lng = lng // 100 + (lng / 100 - lng // 100) * 100 / 60
-					lat = lat // 100 + (lat / 100 - lat // 100) * 100 / 60
-			position = json.JSONEncoder().encode({"lng":lng, "lat":lat})
-			params = {'skey': '', 'opcode': '50', 'type': type, 'count': '1', 'gprsId': imei, 'deviceTime': time, 'seq' : seq, 'motionIndex': motionIndex, 'battery': battery, 'position': position, 'baiduMap' : 1, 'cliaddr':addr}
-			#params = {'skey': '', 'opcode': '50', 'type': type, 'count': '1', 'gprsId': imei, 'devicetime': time, 'seq' : seq, 'motionIndex': steps, 'battery': battery, 'position': position, 'baiduMap' : 1, 'cliaddr':addr}
+				lng = float(lng)
+				lat = float(lat)
+				lng = lng // 100 + (lng / 100 - lng // 100) * 100 / 60
+				lat = lat // 100 + (lat / 100 - lat // 100) * 100 / 60
+				position = json.JSONEncoder().encode({"lng":lng, "lat":lat})
+				trans = 2;
+
+			motionIndex = json.JSONEncoder().encode([steps])
+			params = {'skey': '', 'opcode': '50', 'type': type, 'gprsId': imei, 'deviceTime': time, 'seq' : 0, 'motionIndex': motionIndex, 'battery': battery, 'position': position, 'trans' : trans, 'cliaddr':addr}
+		elif type is '!':
+			imei = l[0]
+			logging.debug("imei:%s", imei)
+			motionIndex = json.JSONEncoder().encode([])
+			position = json.JSONEncoder().encode({"lng":0, "lat":0})
+			params = {'skey': '', 'opcode': '50', 'type': type, 'gprsId': imei, 'deviceTime': servertime, 'seq' : 0, 'motionIndex': motionIndex, 'battery': 0, 'position': position, 'trans' : 0, 'cliaddr':addr}
 
 		#params = urllib.urlencode({'name': 'tom', 'age': 22})
 		logging.debug("params:%s", params)
@@ -139,7 +153,7 @@ def gps_packet(l, cliaddr, type):
 		headers = {"Content-type": "application/x-www-form-urlencoded", "Accept": "text/plain"}
 		conn = httplib.HTTPConnection("182.254.159.219", 80, timeout = 1)
 		conn.request("POST", "/basic/web/?r=hardware/operate", params, headers)
-		response = conn.getresponse()
+		#response = conn.getresponse()
 		#logging.debug("status=%d, reason=%s", response.status, response.reason)
 
 	except ValueError, e:
@@ -149,10 +163,13 @@ def gps_packet(l, cliaddr, type):
 		logging.error("%s", e);
 
 def deal_command(data, cliaddr):
-	dc = {"7":modify_gps_package_freq, "16":change_server_ip}
+	dc = {"7":modify_gps_package_freq, "16":change_server_ip, "10":fetch_sim_seq}
 
 	l = data.split(',')
 	dc.get(l[1])(l)
+
+def fetch_sim_seq(l):
+	pass
 
 #IMEI,7,SEC_SWITCH_ON,SEC_SWITCH_OFF
 def modify_gps_package_freq(l):
@@ -161,7 +178,7 @@ def modify_gps_package_freq(l):
 	import socket
 	try:
 		[imei, order, destip, destport] = l
-		command = ",".join([imei, order, "60"])
+		command = ",".join([imei, order, "20"])
 		logging.debug("modify gps package frequence, command:%s, destination:%s:%s", command, destip, destport)
 		#clientSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 		#clientSocket.sendto(command, (destip, int(destport)))
@@ -188,7 +205,7 @@ init_logger()
 try:
 	serverSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 	serverSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-	server_address = ("0.0.0.0", 9527)
+	server_address = ("0.0.0.0", 9528)
 	#server_address = ("115.47.56.129", 9527)
 	serverSocket.bind(server_address)
 	# serverSocket.listen(1)
@@ -205,9 +222,9 @@ except Exception, e:
 	logging.error('服务器启动失败')
 logging.debug('服务器启动成功，监听IP：%s', server_address)
 
-pool = multiprocessing.Pool(3)
-for i in xrange(3):
-	pool.apply_async(event_loop, (i + 1, ))
+#pool = multiprocessing.Pool(3)
+#for i in xrange(3):
+#	pool.apply_async(event_loop, (i + 1, ))
 event_loop(0)
 pool.close()
 pool.join()
