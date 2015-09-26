@@ -104,13 +104,14 @@ def gps_packet(l, cliaddr, type):
 			#	seq = int(serverTime[8:10]) * 3 + int(serverTime[10:12]) / 20 + 1
 			seq = int(serverTime[8:10]) * 3 + int(serverTime[10:12]) / 20 + 1
 			#motionIndex = json.JSONEncoder().encode([steps])
+			motionIndex = steps
 
 			signal = (int)(signal) * 2 - 113
 			position = json.JSONEncoder().encode({"lac":lac, "cellid":cellid, 'signal':signal})
 			params = {'skey': '', 'opcode': '50', 'type': '$', 'gprsId': imei, 'deviceTime': time, 'seq' : seq, 'motionIndex': motionIndex, 'battery': battery, 'position': position, 'trans' : 1, 'cliaddr':addr}
 		elif type is '@':
 			#实时定位
-			[imei, time, lng, lat, lac, cellid, signal, steps, chargestate, battery, voltage, imsi] = l
+			[imei, time, lng, lat, lac, cellid, signal, imsi, steps, chargestate, battery, voltage] = l
 			logging.debug("imei:%s, time:%s, lng:%s, lat:%s, lac:%s, cellid:%s, signal:%s, steps:%s, chargestate:%s, battery:%s, voltage:%s, imsi:%s", 
 				imei, time, lng, lat, lac, cellid, signal, steps, chargestate, battery, voltage, imsi)
 
@@ -127,13 +128,15 @@ def gps_packet(l, cliaddr, type):
 				position = json.JSONEncoder().encode({"lng":lng, "lat":lat})
 				trans = 2;
 
-			motionIndex = json.JSONEncoder().encode([steps])
+			#motionIndex = json.JSONEncoder().encode([steps])
+			motionIndex = steps
 			params = {'skey': '', 'opcode': '50', 'type': type, 'gprsId': imei, 'deviceTime': time, 'seq' : 0, 'motionIndex': motionIndex, 'battery': battery, 'position': position, 'trans' : trans, 'cliaddr':addr}
 		elif type is '!':
 			#每5分钟回时间给设备
 			imei = l[0]
 			#logging.debug("imei:%s", imei)
-			motionIndex = json.JSONEncoder().encode([])
+			#motionIndex = json.JSONEncoder().encode([])
+			#motionIndex = 0;
 			position = json.JSONEncoder().encode({"lng":0, "lat":0})
 			params = {'skey': '', 'opcode': '50', 'type': type, 'gprsId': imei, 'deviceTime': serverTime, 'cliaddr':addr}
 			#params = {'skey': '', 'opcode': '50', 'type': type, 'gprsId': imei, 'deviceTime': serverTime, 'seq' : 0, 'motionIndex': motionIndex, 'battery': 0, 'position': position, 'trans' : 0, 'cliaddr':addr}
@@ -255,7 +258,7 @@ init_logger()
 try:
 	serverSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 	serverSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-	server_address = ("0.0.0.0", 9527)
+	server_address = ("0.0.0.0", 9528)
 	#server_address = ("115.47.56.129", 9527)
 	serverSocket.bind(server_address)
 	# serverSocket.listen(1)

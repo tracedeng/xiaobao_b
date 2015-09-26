@@ -1000,21 +1000,25 @@ class HardwareController extends Controller
 	public function managePeriodRawData($post)
 	{
 		//20分钟上报
+		$type = $post['type'];
 		$gprsId = $post['gprsId'];
 		$cliaddr = $post['cliaddr'];
 		$seq = $post["seq"];
 		$position = $post["position"];
+		$motionIndex = $post["motionIndex"];
 		$deviceTime = $post["deviceTime"];
 		$battery = $post['battery'];
 		$trans = $post["trans"];
 
+		$position = json_decode($position, true);
+		Yii::trace($position, 'hardware\rawdata');
 		if($trans == 1)
 		{
 			//高德定位
 			$bts=join(",", array('460', '00', $position["lac"], $position["cellid"], $position["signal"]));
 			$argv = array( 
 				'accesstype'=>'0',
-				'imei'=>'',
+				'imei'=>$gprsId,
 				'cdma'=>0,
 				'output'=>'json',
 				'key'=>"668a16aa6ef2c470aa71a93b89e61e56",
@@ -1033,22 +1037,25 @@ class HardwareController extends Controller
 			$context = stream_context_create($opts); 
 	    	Yii::trace($context, 'hardware\rawdata');
 			$result = file_get_contents($url, false, $context);
+	    	Yii::trace($result, 'hardware\rawdata');
 			$result = json_decode($result, true);
 			if($result["status"] == "1") 
 			{
 				$location = explode(",", $result["result"]["location"]);
-				$position["lng"] = $location[0];
-				$position["lat"] = $location[1];
+				$position2["lng"] = $location[0];
+				$position2["lat"] = $location[1];
 			}else{
-				$position["lng"] = 0;
-				$position["lat"] = 0;
+				$position2["lng"] = 0;
+				$position2["lat"] = 0;
 			}
 		}else if($trans == 2){
 			//高德坐标转换
-				$locations = join(",", array($position["lng"], $position["lat"])),
+
+	    	//Yii::trace($position["lng"], 'hardware\rawdata');
+	    	//Yii::trace($position["lat"], 'hardware\rawdata');
+			$locations = join(",", array($position["lng"], $position["lat"]));
 			$argv = array( 
-				'locations'=>$locations,
-				//'locations'=>join(",", array($position["lng"], $position["lat"])),
+				'locations'=>join(",", array($position["lng"], $position["lat"])),
 				'coordsys'=>'gps',
 				'output'=>'json',
 				'key'=>"24271aa45ec8ebf642870aa47743b763",
@@ -1066,22 +1073,37 @@ class HardwareController extends Controller
 			$context = stream_context_create($opts); 
 	    	Yii::trace($context, 'hardware\rawdata');
 			$result = file_get_contents($url, false, $context);
+	    	Yii::trace($result, 'hardware\rawdata');
+			$result = json_decode($result, true);
+			if($result["status"] == "1") 
+			{
+				$location = explode(",", $result["locations"]);
+				$position2["lng"] = $location[0];
+				$position2["lat"] = $location[1];
+			}else{
+				$position2["lng"] = 0;
+				$position2["lat"] = 0;
+			}
 		}
 
-		$positionGeo9 = GeoHash::encode($position["lng"], $position["lat"]);
+		$positionGeo9 = GeoHash::encode($position2["lng"], $position2["lat"]);
 		Yii::trace($positionGeo9, 'hardware\rawdata');
 		$positionGeo9Expand = GeoHash::expand($positionGeo9);
 		Yii::trace($positionGeo9Expand, 'hardware\rawdata');
 
 		//实时传感器数据
 		#$ripeData = Hardware::find()->where(['gprsId' => $gprsId, 'id' => $max])->one();
-		$ripeData = Hardware::find()->where(['gprsId' => $gprsId, 'seq' => $seq])->one();
+		if($seq == 0)
+			$ripeData = false;
+		else
+			$ripeData = Hardware::find()->where(['gprsId' => $gprsId, 'seq' => $seq])->andWhere(['like', 'time', date("Y-m-d")])->one();
 		if(!$ripeData)
 		{
 			$ripeData = new Hardware;
 			$ripeData->gprsId = $post["gprsId"];
 		}
-		$ripeData->position = $post["position"];
+		$ripeData->position = json_encode($position2);
+		//$ripeData->position = $post["position"];
 		$ripeData->positionGeo9 = $positionGeo9;
 		$ripeData->positionGeo8 = substr($positionGeo9, 0, 8);
 		$ripeData->positionGeo7 = substr($positionGeo9, 0, 7);
