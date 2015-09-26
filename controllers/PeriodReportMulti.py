@@ -79,7 +79,7 @@ def data_report(data, cliaddr):
 	l = data[1:].split(',')
 
 	#设备刚上电，无法获取时间
-	if len(l[1]) == len('20150531160830') or len(l[1]) == len('20150531'):
+	if len(l[1]) == len('20150531160830') or len(l[1]) == len('20150531') or '!' == data[0]:
 		gps_packet(l, cliaddr, data[0:1])
 	else:
 		#不识别的命令
@@ -92,37 +92,26 @@ def gps_packet(l, cliaddr, type):
 		ip, port = cliaddr
 		addr = json.JSONEncoder().encode({"ip":cliaddr[0], "port":cliaddr[1]})
 
-		if type == '#':
-			#丢失gsm信号，多包
-			imei = l[0]
-			motionIndex = []
-			for motion in l[1:]:
-				motionIndex.append(motion)
-
-			seq = json.JSONEncoder().encode(seq)
-			motionIndex = json.JSONEncoder().encode(motionIndex)
-			position = json.JSONEncoder().encode({"lng":0, "lat":0})
-
-			params = {'skey': '', 'opcode': '50', 'type': '#', 'gprsId': imei, 'deviceTime': serverTime, 'seq' : 0, 'motionIndex': motionIndex, 'battery': 0, 'position': position, 'trans' : 0, 'cliaddr':addr}
-		elif type is '$':
+		if type is '$':
 			#20分钟周期上报数据转换成序号
 			[imei, time, lac, cellid, signal, imsi, steps, chargestate, battery, voltage] = l
 			logging.debug("imei:%s, time:%s, lac:%s, cellid:%s, signal:%s, steps:%s, chargestate:%s, battery:%s, voltage:%s, imsi:%s", 
 				imei, time, lac, cellid, signal, steps, chargestate, battery, voltage, imsi)
 
-			if len(l[1]) == len('20150531160830'):
-				seq = int(time[8:10]) * 3 + int(time[10:12]) / 20 + 1
-			else:
-				seq = int(serverTime[8:10]) * 3 + int(serverTime[10:12]) / 20 + 1
+			#if len(l[1]) == len('20150531160830'):
+			#	seq = int(time[8:10]) * 3 + int(time[10:12]) / 20 + 1
+			#else:
+			#	seq = int(serverTime[8:10]) * 3 + int(serverTime[10:12]) / 20 + 1
+			seq = int(serverTime[8:10]) * 3 + int(serverTime[10:12]) / 20 + 1
+			#motionIndex = json.JSONEncoder().encode([steps])
 
-			motionIndex = json.JSONEncoder().encode([steps])
 			signal = (int)(signal) * 2 - 113
 			position = json.JSONEncoder().encode({"lac":lac, "cellid":cellid, 'signal':signal})
 			params = {'skey': '', 'opcode': '50', 'type': '$', 'gprsId': imei, 'deviceTime': time, 'seq' : seq, 'motionIndex': motionIndex, 'battery': battery, 'position': position, 'trans' : 1, 'cliaddr':addr}
 		elif type is '@':
 			#实时定位
 			[imei, time, lng, lat, lac, cellid, signal, steps, chargestate, battery, voltage, imsi] = l
-			logging.debug("imei:%s, time:%s, lng:%s, ;at:%s, lac:%s, cellid:%s, signal:%s, steps:%s, chargestate:%s, battery:%s, voltage:%s, imsi:%s", 
+			logging.debug("imei:%s, time:%s, lng:%s, lat:%s, lac:%s, cellid:%s, signal:%s, steps:%s, chargestate:%s, battery:%s, voltage:%s, imsi:%s", 
 				imei, time, lng, lat, lac, cellid, signal, steps, chargestate, battery, voltage, imsi)
 
 			if lng is '' or lat is '' or lng is '0' or lat is '0':
@@ -141,17 +130,38 @@ def gps_packet(l, cliaddr, type):
 			motionIndex = json.JSONEncoder().encode([steps])
 			params = {'skey': '', 'opcode': '50', 'type': type, 'gprsId': imei, 'deviceTime': time, 'seq' : 0, 'motionIndex': motionIndex, 'battery': battery, 'position': position, 'trans' : trans, 'cliaddr':addr}
 		elif type is '!':
+			#每5分钟回时间给设备
 			imei = l[0]
-			logging.debug("imei:%s", imei)
+			#logging.debug("imei:%s", imei)
 			motionIndex = json.JSONEncoder().encode([])
 			position = json.JSONEncoder().encode({"lng":0, "lat":0})
-			params = {'skey': '', 'opcode': '50', 'type': type, 'gprsId': imei, 'deviceTime': servertime, 'seq' : 0, 'motionIndex': motionIndex, 'battery': 0, 'position': position, 'trans' : 0, 'cliaddr':addr}
+			params = {'skey': '', 'opcode': '50', 'type': type, 'gprsId': imei, 'deviceTime': serverTime, 'cliaddr':addr}
+			#params = {'skey': '', 'opcode': '50', 'type': type, 'gprsId': imei, 'deviceTime': serverTime, 'seq' : 0, 'motionIndex': motionIndex, 'battery': 0, 'position': position, 'trans' : 0, 'cliaddr':addr}
+			#下发服务器时间到设备
+			logging.debug("imei:%s", imei)
+			global serverSocket
+			command = ",".join([imei, '21', serverTime])
+			logging.debug("every 5 minite send server time to device, command:%s, destination:%s", command, cliaddr)
+			serverSocket.sendto(command, cliaddr)
+		elif type == '#':
+			#丢失gsm信号，多包
+			imei = l[0]
+			motionIndex = []
+			for motion in l[1:]:
+				motionIndex.append(motion)
+
+			seq = json.JSONEncoder().encode(seq)
+			motionIndex = json.JSONEncoder().encode(motionIndex)
+			position = json.JSONEncoder().encode({"lng":0, "lat":0})
+
+			params = {'skey': '', 'opcode': '50', 'type': '#', 'gprsId': imei, 'deviceTime': serverTime, 'seq' : 0, 'motionIndex': motionIndex, 'battery': 0, 'position': position, 'trans' : 0, 'cliaddr':addr}
 
 		#params = urllib.urlencode({'name': 'tom', 'age': 22})
 		logging.debug("params:%s", params)
 		params = urllib.urlencode(params)
 		headers = {"Content-type": "application/x-www-form-urlencoded", "Accept": "text/plain"}
-		conn = httplib.HTTPConnection("182.254.159.219", 80, timeout = 1)
+		conn = httplib.HTTPConnection("139.196.41.147", 80, timeout = 1)
+		#conn = httplib.HTTPConnection("182.254.159.219", 80, timeout = 1)
 		conn.request("POST", "/basic/web/?r=hardware/operate", params, headers)
 		#response = conn.getresponse()
 		#logging.debug("status=%d, reason=%s", response.status, response.reason)
@@ -159,17 +169,37 @@ def gps_packet(l, cliaddr, type):
 	except ValueError, e:
 		#上报数据错误
 		logging.error("ValueError, %s", e);
-	except Exception, e:
-		logging.error("%s", e);
+	#except Exception, e:
+		#logging.error("%s", e);
 
 def deal_command(data, cliaddr):
-	dc = {"7":modify_gps_package_freq, "16":change_server_ip, "10":fetch_sim_seq}
+	dc = {"7":modify_gps_package_freq, "19":change_server_ip, "21":fetch_multi_pack}
 
 	l = data.split(',')
 	dc.get(l[1])(l)
 
-def fetch_sim_seq(l):
-	pass
+def fetch_multi_pack(l):
+	#exec内部 需要import
+	global serverSocket
+	import socket
+	try:
+		[imei, order, destip, destport] = l
+		command = ",".join([imei, order, "1"])
+		logging.debug("fetch multiple package, command:%s, destination:%s:%s", command, destip, destport)
+		#clientSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+		#clientSocket.sendto(command, (destip, int(destport)))
+		#clientSocket.sendto(command, (destip, int(destport)))
+		serverSocket.sendto(command, (destip, int(destport)))
+		#data2, cliAddr2 = clientSocket.recvfrom(1024)
+		#if data2:
+		#	logging.debug("收到数据：%s, 客户端：%s", data2, cliAddr2)
+		#clientSocket.close()
+	except ValueError, e:
+		#指令数据格式有误
+		logging.error("ValueError, %s", e)
+	except Exception, e:
+		logging.error("%s", e)
+	#pass
 
 #IMEI,7,SEC_SWITCH_ON,SEC_SWITCH_OFF
 def modify_gps_package_freq(l):
@@ -178,7 +208,7 @@ def modify_gps_package_freq(l):
 	import socket
 	try:
 		[imei, order, destip, destport] = l
-		command = ",".join([imei, order, "20"])
+		command = ",".join([imei, order, "1"])
 		logging.debug("modify gps package frequence, command:%s, destination:%s:%s", command, destip, destport)
 		#clientSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 		#clientSocket.sendto(command, (destip, int(destport)))
@@ -196,16 +226,36 @@ def modify_gps_package_freq(l):
 
 #IMEI,16,serverdns,port
 def change_server_ip(l):
-	command = ','.join(l)
-	logging.debug("modify gps package frequence, command:%s, destination:%s", command, dest)
-	s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-	s.sendto(command, dest)
+	global serverSocket
+	import socket
+	try:
+		[imei, order, destip, destport, newip, newport] = l
+		command = ",".join([imei, order, newip, newport])
+		logging.debug("modify server destination, command:%s, destination:%s:%s", command, destip, destport)
+		#clientSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+		#clientSocket.sendto(command, (destip, int(destport)))
+		#clientSocket.sendto(command, (destip, int(destport)))
+		serverSocket.sendto(command, (destip, int(destport)))
+		#data2, cliAddr2 = clientSocket.recvfrom(1024)
+		#if data2:
+		#	logging.debug("收到数据：%s, 客户端：%s", data2, cliAddr2)
+		#clientSocket.close()
+	except ValueError, e:
+		#指令数据格式有误
+		logging.error("ValueError, %s", e)
+	except Exception, e:
+		logging.error("%s", e)
+
+	#command = ','.join(l)
+	#logging.debug("modify gps package frequence, command:%s, destination:%s", command, dest)
+	#s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+	#s.sendto(command, dest)
 
 init_logger()
 try:
 	serverSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 	serverSocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-	server_address = ("0.0.0.0", 9528)
+	server_address = ("0.0.0.0", 9527)
 	#server_address = ("115.47.56.129", 9527)
 	serverSocket.bind(server_address)
 	# serverSocket.listen(1)

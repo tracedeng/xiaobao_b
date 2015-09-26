@@ -980,6 +980,200 @@ class HardwareController extends Controller
 
 	public function manageGprsRawData($post)
 	{
+		$type = $post["type"];
+
+		switch($type)
+		{
+			case "$":
+			case "@":
+				self::managePeriodRawData($post);
+				break;
+			case "!":
+				self::manageHeartBreakRawData($post);
+				break;
+			case "#":
+			default:
+				break;
+		}
+	}
+
+	public function managePeriodRawData($post)
+	{
+		//20分钟上报
+		$gprsId = $post['gprsId'];
+		$cliaddr = $post['cliaddr'];
+		$seq = $post["seq"];
+		$position = $post["position"];
+		$deviceTime = $post["deviceTime"];
+		$battery = $post['battery'];
+		$trans = $post["trans"];
+
+		if($trans == 1)
+		{
+			//高德定位
+			$bts=join(",", array('460', '00', $position["lac"], $position["cellid"], $position["signal"]));
+			$argv = array( 
+				'accesstype'=>'0',
+				'imei'=>'',
+				'cdma'=>0,
+				'output'=>'json',
+				'key'=>"668a16aa6ef2c470aa71a93b89e61e56",
+				'bts'=>$bts,
+				);
+			$params = http_build_query($argv);
+			$url = "http://apilocate.amap.com/position?" . $params; //提交的url地址
+	    	Yii::trace($url, 'hardware\rawdata');
+			
+			$opts = array( 
+				'http'=>array( 
+					'method'=>"GET", 
+					'timeout'=>60, 
+				) 
+			); 
+			$context = stream_context_create($opts); 
+	    	Yii::trace($context, 'hardware\rawdata');
+			$result = file_get_contents($url, false, $context);
+			$result = json_decode($result, true);
+			if($result["status"] == "1") 
+			{
+				$location = explode(",", $result["result"]["location"]);
+				$position["lng"] = $location[0];
+				$position["lat"] = $location[1];
+			}else{
+				$position["lng"] = 0;
+				$position["lat"] = 0;
+			}
+		}else if($trans == 2){
+			//高德坐标转换
+				$locations = join(",", array($position["lng"], $position["lat"])),
+			$argv = array( 
+				'locations'=>$locations,
+				//'locations'=>join(",", array($position["lng"], $position["lat"])),
+				'coordsys'=>'gps',
+				'output'=>'json',
+				'key'=>"24271aa45ec8ebf642870aa47743b763",
+				);
+			$params = http_build_query($argv);
+			$url = "http://restapi.amap.com/v3/assistant/coordinate/convert?" . $params; //提交的url地址
+	    	Yii::trace($url, 'hardware\rawdata');
+			
+			$opts = array( 
+				'http'=>array( 
+					'method'=>"GET", 
+					'timeout'=>60, 
+				) 
+			); 
+			$context = stream_context_create($opts); 
+	    	Yii::trace($context, 'hardware\rawdata');
+			$result = file_get_contents($url, false, $context);
+		}
+
+		$positionGeo9 = GeoHash::encode($position["lng"], $position["lat"]);
+		Yii::trace($positionGeo9, 'hardware\rawdata');
+		$positionGeo9Expand = GeoHash::expand($positionGeo9);
+		Yii::trace($positionGeo9Expand, 'hardware\rawdata');
+
+		//实时传感器数据
+		#$ripeData = Hardware::find()->where(['gprsId' => $gprsId, 'id' => $max])->one();
+		$ripeData = Hardware::find()->where(['gprsId' => $gprsId, 'seq' => $seq])->one();
+		if(!$ripeData)
+		{
+			$ripeData = new Hardware;
+			$ripeData->gprsId = $post["gprsId"];
+		}
+		$ripeData->position = $post["position"];
+		$ripeData->positionGeo9 = $positionGeo9;
+		$ripeData->positionGeo8 = substr($positionGeo9, 0, 8);
+		$ripeData->positionGeo7 = substr($positionGeo9, 0, 7);
+		$ripeData->positionGeo6 = substr($positionGeo9, 0, 6);
+		$ripeData->positionGeo5 = substr($positionGeo9, 0, 5);
+		$ripeData->motionIndex = $motionIndex;
+		$ripeData->battery = $battery;
+		$ripeData->seq = $seq;
+		//date_default_timezone_set('Asia/Shanghai');
+		$ripeData->time = "" . date("Y-m-d H:i:s");
+		$ripeData->deviceTime = $deviceTime;
+		#$ripeData->baiduMap = $baiduMap;
+		Yii::trace($ripeData->attributes, 'hardware\rawdata');
+		if($ripeData->save())
+		{
+			Yii::trace("set rawdata succeed", 'hardware\rawdata');
+	        	//return json_encode(array("errcode"=>0, "errmsg"=>"set raw data succeed"));
+		}else{
+			Yii::trace($account->getErrors(), 'hardware\rawdata');
+			//return json_encode(array("errcode"=>20602, "errmsg"=>"set raw data failed"));
+		}
+
+		//最新数据写入snapshot，没有GSM信号后多包上传只更新cliaddr
+		$snapshot = Snapshot::find()->where(['gprsId' => $gprsId])->one();
+		if (!$snapshot)
+		{
+			$snapshot = new Snapshot;
+			$snapshot->gprsId = $gprsId;
+		}
+		$snapshot->position = $ripeData->position;
+		$snapshot->positionGeo9 = $ripeData->positionGeo9;
+		$snapshot->positionGeo8 = $ripeData->positionGeo8;
+		$snapshot->positionGeo7 = $ripeData->positionGeo7;
+		$snapshot->positionGeo6 = $ripeData->positionGeo6;
+		$snapshot->positionGeo5 = $ripeData->positionGeo5;
+		$snapshot->motionIndex = $motionIndex;
+		$snapshot->battery = $battery;
+		$snapshot->seq = $seq;
+		$snapshot->time = "" . date("Y-m-d H:i:s");
+		//$snapshot->baiduMap = $baiduMap;
+		$snapshot->cliaddr = $cliaddr;
+		if(!$snapshot->save())
+		{
+			Yii::trace($snapshot->getErrors(), 'hardware\rawdata');
+			Yii::trace("save snapshot failed", 'hardware\rawdata');
+		}
+
+		//统计每日消耗量
+		if("@" == $type)
+		{
+			$motion = Motion::find()->where(['gprsId' => $gprsId, 'day' => "" . date("Y-m-d")])->one();
+			if ($motion)
+			{
+				$motion->motionIndex += $motionIndex;
+			}else{
+				$motion = new Motion;
+				$motion->gprsId = $gprsId;
+				$motion->motionIndex = $motionIndex;
+				$motion->day = "" . date("Y-m-d");
+			}
+			if(!$motion->save())
+			{
+				Yii::trace($motion->getErrors(), 'hardware\rawdata');
+				Yii::trace("save everyday motion failed", 'hardware\rawdata');
+			}
+		}
+	}
+
+	public function manageHeartBreakRawData($post)
+	{
+		//5分钟心跳
+		$gprsId = $post['gprsId'];
+		$cliaddr = $post['cliaddr'];
+
+		$snapshot = Snapshot::find()->where(['gprsId' => $gprsId])->one();
+		if (!$snapshot)
+		{
+			$snapshot = new Snapshot;
+			$snapshot->gprsId = $gprsId;
+		}
+
+		$snapshot->cliaddr = $cliaddr;
+		$snapshot->time = "" . date("Y-m-d H:i:s");
+		if(!$snapshot->save())
+		{
+			Yii::trace($snapshot->getErrors(), 'hardware\rawdata');
+			Yii::trace("save snapshot failed", 'hardware\rawdata');
+		}
+	}
+
+	public function manageGprsRawData2($post)
+	{
 		//Yii::trace("count = " . $count, 'hardware\rawdata');
 		//Yii::trace(json_decode($post["seq"], true), 'hardware\rawdata');
 		#$seqs = json_decode($post["seq"], true);
