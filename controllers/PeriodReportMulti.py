@@ -143,7 +143,7 @@ def gps_packet(l, cliaddr, type):
 			#下发服务器时间到设备
 			logging.debug("imei:%s", imei)
 			global serverSocket
-			command = ",".join([imei, '21', serverTime])
+			command = ",".join(["!" + imei, serverTime, '6,1'])
 			logging.debug("every 5 minite send server time to device, command:%s, destination:%s", command, cliaddr)
 			serverSocket.sendto(command, cliaddr)
 		elif type == '#':
@@ -181,6 +181,7 @@ def deal_command(data, cliaddr):
 	l = data.split(',')
 	dc.get(l[1])(l)
 
+#IMEI,21,1
 def fetch_multi_pack(l):
 	#exec内部 需要import
 	global serverSocket
@@ -188,6 +189,7 @@ def fetch_multi_pack(l):
 	try:
 		[imei, order, destip, destport] = l
 		command = ",".join([imei, order, "1"])
+		#command = ",".join([imei, order, "20150929165555"])
 		logging.debug("fetch multiple package, command:%s, destination:%s:%s", command, destip, destport)
 		#clientSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 		#clientSocket.sendto(command, (destip, int(destport)))
@@ -204,7 +206,7 @@ def fetch_multi_pack(l):
 		logging.error("%s", e)
 	#pass
 
-#IMEI,7,SEC_SWITCH_ON,SEC_SWITCH_OFF
+#IMEI,7,1
 def modify_gps_package_freq(l):
 	#exec内部 需要import
 	global serverSocket
@@ -217,6 +219,7 @@ def modify_gps_package_freq(l):
 		#clientSocket.sendto(command, (destip, int(destport)))
 		#clientSocket.sendto(command, (destip, int(destport)))
 		serverSocket.sendto(command, (destip, int(destport)))
+		serverSocket.sendto(command, (destip, int(destport)))
 		#data2, cliAddr2 = clientSocket.recvfrom(1024)
 		#if data2:
 		#	logging.debug("收到数据：%s, 客户端：%s", data2, cliAddr2)
@@ -227,7 +230,7 @@ def modify_gps_package_freq(l):
 	except Exception, e:
 		logging.error("%s", e)
 
-#IMEI,16,serverdns,port
+#IMEI,19,serverdns,port
 def change_server_ip(l):
 	global serverSocket
 	import socket

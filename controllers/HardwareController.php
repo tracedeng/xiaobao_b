@@ -374,9 +374,11 @@ class HardwareController extends Controller
 			#$position = Snapshot::findBySql($sql)->asArray()->one();
 	    	$conditionex = ['<', 'time', 'now()'];
 			//time() - 60 * 2; 
-			$position = Snapshot::find()->where(['gprsId'=>$pet["gprsId"], 'closed'=>0, 'seq'=>0])->andWhere(['>', 'time', date("YmdHis", time() - 2 * 60)])->andWhere(['<', 'time', date("YmdHis", time())])->select('position, time, battery, baiduMap')->asArray()->one();
+			$position = Snapshot::find()->where(['gprsId'=>$pet["gprsId"], 'closed'=>0, 'seq'=>0])->andWhere(['>', 'time', date("YmdHis", time() - 2 * 60)])->andWhere(['<', 'time', date("YmdHis", time())])->select('position, time, battery, lbsgps')->asArray()->one();
+			//$position = Snapshot::find()->where(['gprsId'=>$pet["gprsId"], 'closed'=>0, 'seq'=>0])->andWhere(['>', 'time', date("YmdHis", time() - 2 * 60)])->andWhere(['<', 'time', date("YmdHis", time())])->select('position, time, battery, baiduMap')->asArray()->one();
 		}else{
-			$position = Snapshot::find()->where(['gprsId'=>$pet["gprsId"], 'closed'=>0])->select('position, time, battery, baiduMap')->asArray()->one();
+			$position = Snapshot::find()->where(['gprsId'=>$pet["gprsId"], 'closed'=>0])->select('position, time, battery, lbsgps')->asArray()->one();
+			//$position = Snapshot::find()->where(['gprsId'=>$pet["gprsId"], 'closed'=>0])->select('position, time, battery, baiduMap')->asArray()->one();
 		}
 		Yii::trace($position, 'snapshot\position');
 
@@ -590,7 +592,7 @@ class HardwareController extends Controller
 		}
 		//找到硬件未关闭的宠物位置信息
 		//seq = 0表示0～2点 seq=1表示2～4点
-		$sql = 'select position, (timestampdiff(hour, curdate(), time) div 2) as seq from hardware where gprsId = ' . $pet["gprsId"] .' and time > curdate()';
+		$sql = 'select position, (timestampdiff(hour, curdate(), time) div 2) as seq, time from hardware where gprsId = ' . $pet["gprsId"] .' and time > curdate()';
 		//$sql = select position, (timestampdiff(hour, curdate(), time) div 2) as seq from hardware where gprsId = 860719120000038 and time > curdate();
 		$orbit = Hardware::findBySql($sql)->asArray()->all();
 		Yii::trace($orbit, 'hardware\orbit');
@@ -926,7 +928,7 @@ class HardwareController extends Controller
 		}
 	}
 
-	private function udpSendMsg($msg = '', $ip = '127.0.0.1', $port = '9527')
+	private function udpSendMsg($msg = '', $ip = '127.0.0.1', $port = '9528')
 	{
 		$fp = stream_socket_client("udp://{$ip}:{$port}", $errno, $errstr, 30);
 		//$fp = stream_socket_client("tcp://www.example.com:80", $errno, $errstr, 30);
@@ -1111,7 +1113,9 @@ class HardwareController extends Controller
 		$ripeData->positionGeo5 = substr($positionGeo9, 0, 5);
 		$ripeData->motionIndex = $motionIndex;
 		$ripeData->battery = $battery;
+		$ripeData->type = $type;
 		$ripeData->seq = $seq;
+		$ripeData->lbsgps = $trans;
 		//date_default_timezone_set('Asia/Shanghai');
 		$ripeData->time = "" . date("Y-m-d H:i:s");
 		$ripeData->deviceTime = $deviceTime;
@@ -1142,6 +1146,8 @@ class HardwareController extends Controller
 		$snapshot->motionIndex = $motionIndex;
 		$snapshot->battery = $battery;
 		$snapshot->seq = $seq;
+		$snapshot->type = $type;
+		$snapshot->lbsgps = $trans;
 		$snapshot->time = "" . date("Y-m-d H:i:s");
 		//$snapshot->baiduMap = $baiduMap;
 		$snapshot->cliaddr = $cliaddr;
@@ -1186,7 +1192,9 @@ class HardwareController extends Controller
 		}
 
 		$snapshot->cliaddr = $cliaddr;
-		$snapshot->time = "" . date("Y-m-d H:i:s");
+		//心跳包不修改时间，避免和定位冲突
+		$snapshot->heartTime = "" . date("Y-m-d H:i:s");
+		$snapshot->type = "!";
 		if(!$snapshot->save())
 		{
 			Yii::trace($snapshot->getErrors(), 'hardware\rawdata');

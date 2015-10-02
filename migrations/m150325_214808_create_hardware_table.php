@@ -24,6 +24,8 @@ class m150325_214808_create_hardware_table extends Migration
 			"deviceTime" => Schema::TYPE_DATETIME . ' NOT NULL',
 			"seq" => Schema::TYPE_SMALLINT,
 			"baiduMap" => Schema::TYPE_BOOLEAN . ' DEFAULT 0',
+			"type" => Schema::TYPE_STRING . ' DEFAULT ""',
+			"lbsgps" => Schema::TYPE_BOOLEAN . ' DEFAULT 0',
 	    ], "DEFAULT CHARSET=utf8;");
 
 	    //当前最新数据，petid是宠物ID，省去查宠物表
@@ -45,6 +47,9 @@ class m150325_214808_create_hardware_table extends Migration
 	    	"cliaddr" => Schema::TYPE_STRING . ' DEFAULT ""',
 			"seq" => Schema::TYPE_SMALLINT,
 			"baiduMap" => Schema::TYPE_BOOLEAN . ' DEFAULT 0',
+			"type" => Schema::TYPE_STRING . ' DEFAULT ""',
+			"lbsgps" => Schema::TYPE_BOOLEAN . ' DEFAULT 0',
+			"heartTime" => Schema::TYPE_DATETIME . ' NOT NULL',
 			'PRIMARY KEY (gprsId)',
 	    ], "DEFAULT CHARSET=utf8;");
 

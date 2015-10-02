@@ -489,8 +489,8 @@ class CircleController extends Controller
 	    $circle->attributes = $post;
 	    if(!$circle->validate())
 	    {
-    	            Yii::trace($account->getErrors(), 'circle\thumb');
-    	            return json_encode(array("errcode"=>20401, "errmsg"=>"thumb a non-exist circle"));
+    		Yii::trace($circle->getErrors(), 'circle\thumb');
+    		return json_encode(array("errcode"=>20401, "errmsg"=>"thumb a non-exist circle"));
 	    }
 
 	    $id = $post["id"];

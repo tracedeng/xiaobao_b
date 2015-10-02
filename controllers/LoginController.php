@@ -290,8 +290,8 @@ class LoginController extends Controller
 		    $account->cacheVerifyCode($verifyCode, 6000);
 		    //TODO... step3: send veirfy code according third party api
 			//测试先不短信下发
-			//if(0 != $this->sendVCode1XinXi($verifyCode, $account->phoneNumber))
-		    //	return json_encode(array("errcode"=>10103, "errmsg"=>"1xinxi send vcode failed"));
+			if(0 != $this->sendVCode1XinXi($verifyCode, $account->phoneNumber))
+		    	return json_encode(array("errcode"=>10103, "errmsg"=>"1xinxi send vcode failed"));
 
 		    //return verify code if debug
 		    if(YII_ENV_DEV)
