@@ -16,11 +16,14 @@ class SnsController extends Controller{
     
     public function actionAdd() {
         header('Content-type:text/html;charset=utf-8');
-        $this->is_logined();
+        //$this->is_logined();
         if($_POST != NULL){
             $json = $_POST['imgdata'];
             file_put_contents("imgdata_array.txt",$_POST['imgdata']);
             $add_data=json_decode($json,true); 
+            $text_arr= $this->text_sql($add_data);
+	    	//Yii::trace($add_data['imgdata'], 'circle\add');
+        	$this->is_logined($text_arr['skey']);
             $img_num=count($add_data['imgdata'][0]);
             $ymd =date("Ymd",time())."/";
             $path = "../data/circle/".$ymd;
@@ -35,17 +38,18 @@ class SnsController extends Controller{
             }
             
             $connection = \Yii::$app->db;
-            $text_arr= $this->text_sql($add_data);
+            //$text_arr= $this->text_sql($add_data);
             $userid_sql = "SELECT `id` FROM `account` WHERE phoneNumber='".$add_data["phoneNumber"]."'";
             $command=$connection->createCommand($userid_sql);
             $userid=$command->queryOne();
             if($userid){
                 $user_id=$userid['id'];
             };
-            $sql = "INSERT INTO `circle` (`ownerId`, `type`,`releaseTime` , `detailText`, `detailImagesPath`,`detailImagesCount` , `location`) VALUES ('".$user_id."', '".$text_arr['type']."', '".date("Y-m-d h:i:s")."', '".$text_arr['detailText']."','".$pic_url_set."',".$img_num.",'".$text_arr['location']."') ";
+            $sql = "INSERT INTO `circle` (`ownerId`, `type`,`releaseTime` , `detailText`, `detailImagesPath`,`detailImagesCount` , `location`) VALUES ('".$user_id."', '".$text_arr['type']."', '".date("Y-m-d H:i:s")."', '".$text_arr['detailText']."','".$pic_url_set."',".$img_num.",'".$text_arr['location']."') ";
+	    	Yii::trace("sql=" . $sql, 'circle\add');
             $command=$connection->createCommand($sql);
-                   if($command->execute()){
-                       echo '{"code":"10000","msg":"success"}';
+            if($command->execute()){
+            	echo '{"code":"10000","msg":"success"}';
             };
         }else{
             echo '{"code":"10001","msg":"error"}';
@@ -54,10 +58,10 @@ class SnsController extends Controller{
     }
     
     public function actionRead($p=1,$who="all",$pnumber,$thenumber=0){
-        $this->is_logined();
+        $this->is_logined($_GET["skey"]);
         $connection = \Yii::$app->db;
         //配置 图片文件 在服务器的目录
-        $ip = "http://182.254.159.219/";
+        $ip = "http://139.196.41.147/";
         $img_path = "basic/data/circle/";
         $url =$ip.$img_path;
         
@@ -113,7 +117,13 @@ class SnsController extends Controller{
                 $myfriend_number[]="`ownerId` = ".$this->getUserIdByPNubmer($value['number'])['id']."";
             }
         }else {
-            echo '{"code":"1005","it is empty!"}';
+            //echo '{"code":"1005","it is empty!"}';
+			if($who == "myfriend")
+			{
+				//echo json_encode(array("code"=>1005, "errmsg"=>"it is empty"));
+				echo json_encode(array());
+				exit();
+			}
         };
         
         
@@ -133,7 +143,8 @@ class SnsController extends Controller{
                     $where = " WHERE `deleted`=0 AND `ownerId` = ".$the_userid['id'];
                 }  else {
                     $msg=array("code"=>"10020","msg"=>"如果是读取指定的手机号码的帖子，第4个参数必须填写！");
-                    echo json_encode($msg);exit();
+                    echo json_encode($msg);
+					exit();
                 }
                 
             }
@@ -188,6 +199,8 @@ class SnsController extends Controller{
                 $post_all[$key]['profile'] = "";
             }
         }
+    		//echo json_encode(array("errcode"=>20401, "errmsg"=>"thumb a non-exist circle"));
+    		//Yii::trace($post_all, 'circle\thumb');
         echo json_encode($post_all);
     }
 
@@ -541,21 +554,33 @@ class SnsController extends Controller{
     /*
      * 判断是否登陆
      */
-    public function is_logined(){
-        $skey = $_GET['skey'];
+    public function is_logined($skey){
+		Yii::trace("fff", 'circle\add');
+        //$skey = $_GET['skey'];
+		//Yii::trace($skey, 'circle\add');
+        //$skey = $_REQUEST['skey'];
+		Yii::trace($skey, 'circle\add');
         $td = mcrypt_module_open('xtea', '', 'ecb', '');
         $iv = mcrypt_create_iv (mcrypt_enc_get_iv_size($td), MCRYPT_RAND);
         mcrypt_generic_init($td, "jJe8f6I9", $iv);
         $plain = mdecrypt_generic($td, base64_decode($skey));
+		Yii::trace($plain, 'circle\add');
         $phoneNumber = substr($plain, 10);
+		Yii::trace($phoneNumber, 'circle\add');
         mcrypt_generic_deinit($td);
         mcrypt_module_close($td);
-        $rs = ((intval($phoneNumber) + 0) == (intval($_GET['pnumber']) + 0));//这本身就是一种sign签名对比，以mcrypt作为签名类型
+		Yii::trace($phoneNumber, 'circle\add');
+		Yii::trace($_GET["pnumber"], 'circle\add');
+        $rs = ((intval($phoneNumber) + 0) == (intval($_GET["pnumber"]) + 0));//这本身就是一种sign签名对比，以mcrypt作为签名类型
         if($rs == true)
         {
             return true;
         }  else {
-            exit('{"code":"10001","msg":"fail"}');
+				//echo json_encode(array());
+			Yii::trace("errrrrrrrrrrrrrr", 'circle\add');
+			echo json_encode(array("code"=>"10001","msg"=>"fail"));
+			exit();
+            //exit('{"code":"10001","msg":"fail"}');
         }
     }
 }

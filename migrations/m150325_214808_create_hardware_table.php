@@ -84,7 +84,8 @@ class m150325_214808_create_hardware_table extends Migration
 	    $this->createTable("fixpara", [
 			"minScale" => Schema::TYPE_FLOAT . ' DEFAULT 3',
 			"maxScale" => Schema::TYPE_FLOAT . ' DEFAULT 19',
-			"bootScale" => Schema::TYPE_FLOAT . ' DEFAULT 13',
+			"bootScale" => Schema::TYPE_FLOAT . ' DEFAULT 18',
+			"orbitBootScale" => Schema::TYPE_FLOAT . ' DEFAULT 15',
 	    	"maxNail" => Schema::TYPE_BIGINT . ' DEFAULT 20',
 	    ], "DEFAULT CHARSET=utf8;");
 

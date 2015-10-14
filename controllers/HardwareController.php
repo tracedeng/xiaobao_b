@@ -16,6 +16,7 @@ use app\models\Fixpara;
 use app\models\PetFood;
 use app\models\Sos;
 use app\models\Seqno;
+use app\models\Energy;
 
 #define APILOCATEKEY "668a16aa6ef2c470aa71a93b89e61e56"
 #define TRANSKEY "24271aa45ec8ebf642870aa47743b763"
@@ -342,6 +343,12 @@ class HardwareController extends Controller
 		if($seqno && $seqno->enable)
 		{
 			//有效硬件序列号
+			$pet = Pet::find()->where(["gprsId" => $post["gprsId"]])->one();
+			Yii::trace($pet, 'hardware\queryGprs');
+			if ($pet && $pet->isBindGprs)
+			{
+				return json_encode(array("errcode"=>0, "valid"=>0));
+			}
 			return json_encode(array("errcode"=>0, "valid"=>1));
 		}
 		//无效
@@ -374,7 +381,10 @@ class HardwareController extends Controller
 			#$position = Snapshot::findBySql($sql)->asArray()->one();
 	    	$conditionex = ['<', 'time', 'now()'];
 			//time() - 60 * 2; 
-			$position = Snapshot::find()->where(['gprsId'=>$pet["gprsId"], 'closed'=>0, 'seq'=>0])->andWhere(['>', 'time', date("YmdHis", time() - 2 * 60)])->andWhere(['<', 'time', date("YmdHis", time())])->select('position, time, battery, lbsgps')->asArray()->one();
+			if($post["lbsgps"] == "1")
+				$position = Snapshot::find()->where(['gprsId'=>$pet["gprsId"], 'closed'=>0, 'seq'=>0, 'lbsgps'=>2])->andWhere(['>', 'time', date("YmdHis", time() - 90)])->andWhere(['<', 'time', date("YmdHis", time())])->select('position, time, battery, lbsgps')->asArray()->one();
+			else
+				$position = Snapshot::find()->where(['gprsId'=>$pet["gprsId"], 'closed'=>0, 'seq'=>0])->andWhere(['>', 'time', date("YmdHis", time() - 2 * 90)])->andWhere(['<', 'time', date("YmdHis", time())])->select('position, time, battery, lbsgps')->asArray()->one();
 			//$position = Snapshot::find()->where(['gprsId'=>$pet["gprsId"], 'closed'=>0, 'seq'=>0])->andWhere(['>', 'time', date("YmdHis", time() - 2 * 60)])->andWhere(['<', 'time', date("YmdHis", time())])->select('position, time, battery, baiduMap')->asArray()->one();
 		}else{
 			$position = Snapshot::find()->where(['gprsId'=>$pet["gprsId"], 'closed'=>0])->select('position, time, battery, lbsgps')->asArray()->one();
@@ -592,7 +602,7 @@ class HardwareController extends Controller
 		}
 		//找到硬件未关闭的宠物位置信息
 		//seq = 0表示0～2点 seq=1表示2～4点
-		$sql = 'select position, (timestampdiff(hour, curdate(), time) div 2) as seq, time from hardware where gprsId = ' . $pet["gprsId"] .' and time > curdate()';
+		$sql = 'select position, (timestampdiff(hour, curdate(), time) div 2) as seq, time from hardware where type != "#" and gprsId = ' . $pet["gprsId"] .' and time > curdate()';
 		//$sql = select position, (timestampdiff(hour, curdate(), time) div 2) as seq from hardware where gprsId = 860719120000038 and time > curdate();
 		$orbit = Hardware::findBySql($sql)->asArray()->all();
 		Yii::trace($orbit, 'hardware\orbit');
@@ -715,13 +725,21 @@ class HardwareController extends Controller
 			return json_encode(array("errcode"=>20602, "errmsg"=>"bind gprs failed"));
 		}
 
-		$pet = Pet::find()->where(['id'=>$petId])->select('gprsId, isBindGprs')->one();
+		$pet = Pet::find()->where(['id'=>$petId])->select('gprsId, isBindGprs, weight')->one();
 		if(!$pet->isBindGprs)
 		{
 			//不会到这
 			return json_encode(array("errcode"=>0, "motion"=>array()));
 		}
 		$gprsId = $pet->gprsId;
+		$weight = $pet->weight;
+		$weight = intval($weight * 10);
+		$weight = $weight > 400 ? 400 : $weight;
+		$energy = Energy::find()->where(['weight' => $weight])->select('k')->one();
+		if($energy)
+			$k = $energy->k;
+		else
+			$k = 705;
 
 		//24 * 60 + 20 = 1460min
 		//时间方法
@@ -735,12 +753,22 @@ class HardwareController extends Controller
 		//转变后格式array(0=>100, 1=>200)
 		$result = array();
 		$dayTotal = 0;
+		$max = 0;
+		$maxseq = 0;
 		foreach($motion as $item)
 		{
 			$result[$item["seq"]] = $item["motionIndex"];
 			$dayTotal += $item["motionIndex"];
+			if($max < $item["motionIndex"])
+				$max = $item["motionIndex"];
+			if($maxseq < $item["seq"])
+				$maxseq = $item["seq"];
 		}
 		$result["total"] = $dayTotal;
+		$result["max"] = $max * 1.3;
+		$result["min"] = $max / 50;
+		$result["maxSeq"] = $maxseq;
+		$result["k"] = $k;
 
 		return json_encode(array("errcode"=>0, "motion"=>$result));
 	}
@@ -948,7 +976,7 @@ class HardwareController extends Controller
 		return true;
 	}
 
-	public function manageOrder($post)
+	public function manageOrderPosition($post)
 	{
 		//TODO... 有效性检查，避免读 $post数据失败
 		$petId = $post["petId"];
@@ -980,6 +1008,38 @@ class HardwareController extends Controller
 		}
 	}
 
+	public function manageOrderMotion($post)
+	{
+		//TODO... 有效性检查，避免读 $post数据失败
+		$petId = $post["petId"];
+		$userId = Account::findOne(['phoneNumber' => $post["phoneNumber"]])->id;
+
+		//检查用户拥有或助养该宠物
+		if(false == $this->canFetchPosition($petId, $userId))
+		{
+			Yii::trace("manage gprs order failed, user not own this pet", 'hardware\order');
+			return json_encode(array("errcode"=>20902, "errmsg"=>"fetch position failed, user not own or sponsor this pet"));
+		}
+		//检查宠物是否绑定硬件
+		$pet = Pet::find()->where(["id" => $petId])->select('gprsId, isBindGprs')->asArray()->one();
+		if(!$pet["isBindGprs"])
+		{
+			Yii::trace("this pet not bind gprs", 'hardware\order');
+			return json_encode(array("errcode"=>20902, "errmsg"=>"pet not bind gprs"));
+		}
+		//下发指令，格式[GPRSID, 21 IP, PORT]
+		$dst = Snapshot::find()->where(['gprsId'=>$pet["gprsId"], 'closed'=>0])->select('cliaddr')->asArray()->one();
+		$dst = json_decode($dst["cliaddr"], true);
+		$msg = implode(",", array($pet["gprsId"], "21", $dst["ip"], $dst["port"]));
+		Yii::trace($msg, 'hardware\order');
+		if($this->udpSendMsg($msg))
+		{
+			return json_encode(array("errcode"=>0, "errmsg"=>"send order success"));
+		}else{
+			return json_encode(array("errcode"=>20903, "errmsg"=>"send order failed"));
+		}
+	}
+
 	public function manageGprsRawData($post)
 	{
 		$type = $post["type"];
@@ -994,6 +1054,8 @@ class HardwareController extends Controller
 				self::manageHeartBreakRawData($post);
 				break;
 			case "#":
+				self::manageMultiPackRawData($post);
+				break;
 			default:
 				break;
 		}
@@ -1144,7 +1206,8 @@ class HardwareController extends Controller
 		$snapshot->positionGeo6 = $ripeData->positionGeo6;
 		$snapshot->positionGeo5 = $ripeData->positionGeo5;
 		$snapshot->motionIndex = $motionIndex;
-		$snapshot->battery = $battery;
+		if($type == "$")
+			$snapshot->battery = $battery;
 		$snapshot->seq = $seq;
 		$snapshot->type = $type;
 		$snapshot->lbsgps = $trans;
@@ -1158,7 +1221,7 @@ class HardwareController extends Controller
 		}
 
 		//统计每日消耗量
-		if("@" == $type)
+		if("$" == $type)
 		{
 			$motion = Motion::find()->where(['gprsId' => $gprsId, 'day' => "" . date("Y-m-d")])->one();
 			if ($motion)
@@ -1200,6 +1263,83 @@ class HardwareController extends Controller
 			Yii::trace($snapshot->getErrors(), 'hardware\rawdata');
 			Yii::trace("save snapshot failed", 'hardware\rawdata');
 		}
+	}
+	
+	public function manageMultiPackRawData($post)
+	{
+		$gprsId = $post['gprsId'];
+		$cliaddr = $post['cliaddr'];
+		$seq0 = $post['seq0'];
+		$seqN = $post['seqN'];
+		Yii::trace($post['motionIndex'], 'hardware\rawdata');
+		$motionIndex = json_decode($post["motionIndex"], true);
+		Yii::trace($motionIndex, 'hardware\rawdata');
+
+		//修改地址
+		$snapshot = Snapshot::find()->where(['gprsId' => $gprsId])->one();
+		if (!$snapshot)
+		{
+			$snapshot = new Snapshot;
+			$snapshot->gprsId = $gprsId;
+		}
+
+		$snapshot->cliaddr = $cliaddr;
+		//心跳包不修改时间，避免和定位冲突
+		$snapshot->type = "#";
+		if(!$snapshot->save())
+		{
+			Yii::trace($snapshot->getErrors(), 'hardware\rawdata');
+			Yii::trace("save snapshot failed", 'hardware\rawdata');
+		}
+
+		$j = 0;
+		$motionExtra = 0;
+		for($i = $seq0; $i <= $seqN; $i++)
+		{
+			$hardware = Hardware::find()->where(['gprsId' => $gprsId, 'seq' => $i])->andWhere(['like', 'time', date("Y-m-d")])->one();
+			if (!$hardware)
+			{
+				$hardware = new Hardware;
+				$hardware->gprsId = $gprsId;
+				$hardware->seq = $i;
+				$hardware->type = '#';
+				$hardware->time = "" . date("Y-m-d H:i:s");
+				$motionExtra += $motionIndex[$j] == Null ? 0 : $motionIndex[$j];
+			}
+			$hardware->motionIndex = $motionIndex[$j] == Null ? 0 : $motionIndex[$j];
+			$j = $j + 1;
+				
+			if(!$hardware->save())
+			{
+				Yii::trace($hardwares->getErrors(), 'hardware\rawdata');
+				Yii::trace("save hardwares failed", 'hardware\rawdata');
+			}
+		}
+		if($motionExtra > 0)
+		{
+			$motion = Motion::find()->where(['gprsId' => $gprsId, 'day' => "" . date("Y-m-d")])->one();
+			if ($motion)
+			{
+				$motion->motionIndex += $motionExtra;
+			}else{
+				$motion = new Motion;
+				$motion->gprsId = $gprsId;
+				$motion->motionIndex = $motionExtra;
+				$motion->day = "" . date("Y-m-d");
+			}
+			if(!$motion->save())
+			{
+				Yii::trace($motion->getErrors(), 'hardware\rawdata');
+				Yii::trace("save everyday motion failed", 'hardware\rawdata');
+			}
+		}
+		//$hardwares = Hardware::find()->where(['gprsId' => $gprsId])->andWhere(['and', 'seq <= ' . $endseq, 'seq >= ' . $startseq])->andWhere(['like', 'time', date("Y-m-d")])->all();
+		////$hardwares = Hardware::find()->where(['and', 'seq < ' . $endseq, 'seq > ' . $startseq])->andWhere(['like', 'time', date("Y-m-d")])->asArray()->all();
+		//foreach($hardwares as $hardware)
+		//{
+		//	Yii::trace($hardware->seq, 'hardware\rawdata');
+		//	$hardware->motionIndex = $motionIndex[$hardware->seq - 1];
+		//}
 	}
 
 	public function manageGprsRawData2($post)
@@ -1485,17 +1625,16 @@ class HardwareController extends Controller
 					return $this->manageGprsRawData($post);
 				case 51:
 					//处理客户端定位指令
-					return $this->manageOrder($post);
+					return $this->manageOrderPosition($post);
+				case 52:
+					//处理客户端运动指令
+					return $this->manageOrderMotion($post);
 				case 60:
 					//当前是否可以发送SOS 
 					return $this->querySOS($post);
 				case 61:
 					//发送SOS后更新
-					return $this->setSOS($post);/*
-                                case 62:
-                                    return $this->MoveTrack($post);
-                                case 63:
-                                    return $this->MoveIndex($post);*/
+					return $this->setSOS($post);
 				default:
 					//不支持的操作不回包
 					break;

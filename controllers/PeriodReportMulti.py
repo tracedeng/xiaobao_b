@@ -79,7 +79,7 @@ def data_report(data, cliaddr):
 	l = data[1:].split(',')
 
 	#设备刚上电，无法获取时间
-	if len(l[1]) == len('20150531160830') or len(l[1]) == len('20150531') or '!' == data[0]:
+	if len(l[1]) == len('20150531160830') or len(l[1]) == len('20150531') or '!' == data[0] or '#' == data[0]:
 		gps_packet(l, cliaddr, data[0:1])
 	else:
 		#不识别的命令
@@ -134,6 +134,7 @@ def gps_packet(l, cliaddr, type):
 		elif type is '!':
 			#每5分钟回时间给设备
 			imei = l[0]
+			retTime = l[2]
 			#logging.debug("imei:%s", imei)
 			#motionIndex = json.JSONEncoder().encode([])
 			#motionIndex = 0;
@@ -142,22 +143,26 @@ def gps_packet(l, cliaddr, type):
 			#params = {'skey': '', 'opcode': '50', 'type': type, 'gprsId': imei, 'deviceTime': serverTime, 'seq' : 0, 'motionIndex': motionIndex, 'battery': 0, 'position': position, 'trans' : 0, 'cliaddr':addr}
 			#下发服务器时间到设备
 			logging.debug("imei:%s", imei)
-			global serverSocket
-			command = ",".join(["!" + imei, serverTime, '6,1'])
-			logging.debug("every 5 minite send server time to device, command:%s, destination:%s", command, cliaddr)
-			serverSocket.sendto(command, cliaddr)
+			if retTime == '1':
+				global serverSocket
+				command = ",".join(["!" + imei, '6', serverTime])
+				logging.debug("every 5 minite send server time to device, command:%s, destination:%s", command, cliaddr)
+				serverSocket.sendto(command, cliaddr)
 		elif type == '#':
 			#丢失gsm信号，多包
 			imei = l[0]
-			motionIndex = []
-			for motion in l[1:]:
-				motionIndex.append(motion)
+			motionIndex = l[1:]
+			seq = int(serverTime[8:10]) * 3 + int(serverTime[10:12]) / 20 + 1
+			seq0 = 1 if seq < len(motionIndex) else (seq - len(motionIndex) + 1)
+			seqN = seq
+			if seq0 == 1:
+				motionIndex = motionIndex[-seqN:]
 
-			seq = json.JSONEncoder().encode(seq)
 			motionIndex = json.JSONEncoder().encode(motionIndex)
-			position = json.JSONEncoder().encode({"lng":0, "lat":0})
+			#position = json.JSONEncoder().encode({"lng":0, "lat":0})
 
-			params = {'skey': '', 'opcode': '50', 'type': '#', 'gprsId': imei, 'deviceTime': serverTime, 'seq' : 0, 'motionIndex': motionIndex, 'battery': 0, 'position': position, 'trans' : 0, 'cliaddr':addr}
+			#params = {'skey': '', 'opcode': '50', 'type': '#', 'gprsId': imei, 'deviceTime': serverTime, 'seq' : 0, 'motionIndex': motionIndex, 'battery': 0, 'position': position, 'trans' : 0, 'cliaddr':addr}
+			params = {'skey': '', 'opcode': '50', 'type': '#', 'gprsId': imei, 'deviceTime': serverTime, 'motionIndex': motionIndex, 'cliaddr':addr, 'seq0': seq0, 'seqN': seqN}
 
 		#params = urllib.urlencode({'name': 'tom', 'age': 22})
 		logging.debug("params:%s", params)
@@ -188,8 +193,10 @@ def fetch_multi_pack(l):
 	import socket
 	try:
 		[imei, order, destip, destport] = l
-		command = ",".join([imei, order, "1"])
+		command = ",".join([imei, order, "1\r\n"])
 		#command = ",".join([imei, order, "20150929165555"])
+		#command = command + '\x0d\x0a'
+		#command = command + ',aa'
 		logging.debug("fetch multiple package, command:%s, destination:%s:%s", command, destip, destport)
 		#clientSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 		#clientSocket.sendto(command, (destip, int(destport)))
@@ -213,12 +220,12 @@ def modify_gps_package_freq(l):
 	import socket
 	try:
 		[imei, order, destip, destport] = l
-		command = ",".join([imei, order, "1"])
+		command = ",".join([imei, order, "1\r\n"])
 		logging.debug("modify gps package frequence, command:%s, destination:%s:%s", command, destip, destport)
 		#clientSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 		#clientSocket.sendto(command, (destip, int(destport)))
 		#clientSocket.sendto(command, (destip, int(destport)))
-		serverSocket.sendto(command, (destip, int(destport)))
+		#serverSocket.sendto(command, (destip, int(destport)))
 		serverSocket.sendto(command, (destip, int(destport)))
 		#data2, cliAddr2 = clientSocket.recvfrom(1024)
 		#if data2:
@@ -236,7 +243,7 @@ def change_server_ip(l):
 	import socket
 	try:
 		[imei, order, destip, destport, newip, newport] = l
-		command = ",".join([imei, order, newip, newport])
+		command = ",".join([imei, order, newip, newport + "\r\n"])
 		logging.debug("modify server destination, command:%s, destination:%s:%s", command, destip, destport)
 		#clientSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 		#clientSocket.sendto(command, (destip, int(destport)))

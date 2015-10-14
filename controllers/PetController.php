@@ -714,15 +714,21 @@ class PetController extends Controller
 		$sponsor = new Sponsor;
 		$sponsor->petId = $petId;
 		$sponsor->sponsorId = $sponsorId;
+		$exist = Sponsor::find()->where(['petId' => $petId, 'sponsorId' => $sponsorId])->one();
+		if($exist)
+		{
+			Yii::trace("user sponsor this pet already", 'pet\sponsor');
+	        return json_encode(array("errcode"=>20703, "errmsg"=>"sponsor a pet failed", "result"=>false));
+		}
 		$sponsor->sponsorTime = "" . date("Y-m-d H:i:s");
 		Yii::trace($sponsor, 'pet\sponsor');
 		if($sponsor->save())
 		{
 			Yii::trace("sponsor a pet succeed", 'pet\sponsor');
-	        	return json_encode(array("errcode"=>0, "errmsg"=>"sponsor a pet succeed", "result"=>true));
+	        return json_encode(array("errcode"=>0, "errmsg"=>"sponsor a pet succeed", "result"=>true));
 		}else{
 			Yii::trace($sponsor->getErrors(), 'pet\sponsor');
-	        	return json_encode(array("errcode"=>20602, "errmsg"=>"sponsor a pet failed", "result"=>false));
+	        return json_encode(array("errcode"=>20602, "errmsg"=>"sponsor a pet failed", "result"=>false));
 		}
 	}
 
