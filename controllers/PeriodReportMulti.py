@@ -152,6 +152,7 @@ def gps_packet(l, cliaddr, type):
 			#丢失gsm信号，多包
 			imei = l[0]
 			motionIndex = l[1:]
+			motionIndex.reverse()
 			seq = int(serverTime[8:10]) * 3 + int(serverTime[10:12]) / 20 + 1
 			seq0 = 1 if seq < len(motionIndex) else (seq - len(motionIndex) + 1)
 			seqN = seq
@@ -222,10 +223,6 @@ def modify_gps_package_freq(l):
 		[imei, order, destip, destport] = l
 		command = ",".join([imei, order, "1\r\n"])
 		logging.debug("modify gps package frequence, command:%s, destination:%s:%s", command, destip, destport)
-		#clientSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-		#clientSocket.sendto(command, (destip, int(destport)))
-		#clientSocket.sendto(command, (destip, int(destport)))
-		#serverSocket.sendto(command, (destip, int(destport)))
 		serverSocket.sendto(command, (destip, int(destport)))
 		#data2, cliAddr2 = clientSocket.recvfrom(1024)
 		#if data2:
@@ -245,9 +242,6 @@ def change_server_ip(l):
 		[imei, order, destip, destport, newip, newport] = l
 		command = ",".join([imei, order, newip, newport + "\r\n"])
 		logging.debug("modify server destination, command:%s, destination:%s:%s", command, destip, destport)
-		#clientSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-		#clientSocket.sendto(command, (destip, int(destport)))
-		#clientSocket.sendto(command, (destip, int(destport)))
 		serverSocket.sendto(command, (destip, int(destport)))
 		#data2, cliAddr2 = clientSocket.recvfrom(1024)
 		#if data2:
