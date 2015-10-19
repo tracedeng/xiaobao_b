@@ -193,6 +193,9 @@ class PetController extends Controller
 				case 43:
 					//取消助养
 					return $this->cancelSponsorAPet($post);
+				case 44:
+					//是否助养了助养
+					return $this->isSponsorAPet($post);
 				case 50:
 					//宠物种类
 					return $this->queryKinds($post);
@@ -730,6 +733,23 @@ class PetController extends Controller
 			Yii::trace($sponsor->getErrors(), 'pet\sponsor');
 	        return json_encode(array("errcode"=>20602, "errmsg"=>"sponsor a pet failed", "result"=>false));
 		}
+	}
+
+	//助养
+	public function isSponsorAPet($post)
+	{
+		//TODO... 有效性检查，避免读 $post数据失败
+		$petId = $post["petId"];
+
+		$sponsorId = Account::findOne(['phoneNumber' => $post["phoneNumber"]])->id;
+		$exist = Sponsor::find()->where(['petId' => $petId, 'sponsorId' => $sponsorId])->one();
+		if($exist)
+		{
+			Yii::trace("user sponsor this pet already", 'pet\sponsor');
+	        return json_encode(array("errcode"=>0, "result"=>true));
+		}
+
+	    return json_encode(array("errcode"=>0, "result"=>false));
 	}
 
 	//解除助养

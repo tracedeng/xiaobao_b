@@ -136,6 +136,7 @@ class LoginController extends Controller
 			$account->save();
 			$material->id = $account->id;
 			$material->phoneNumber = $account->phoneNumber;
+			//$material->sex = $post["sexy"];
 
 			$easemob = new Easemob;
 			$result = $easemob->accreditRegister(array('username'=>$account->phoneNumber, 'password'=>$account->passwordMd5, 'nickname'=>$material->nickname));

@@ -145,7 +145,10 @@ def gps_packet(l, cliaddr, type):
 			logging.debug("imei:%s", imei)
 			if retTime == '1':
 				global serverSocket
-				command = ",".join(["!" + imei, '6', serverTime])
+				command = ",".join([imei, '6', serverTime])
+				#command = ",".join(["!" + imei, '6', serverTime])
+				#import time
+				#time.sleep(60)
 				logging.debug("every 5 minite send server time to device, command:%s, destination:%s", command, cliaddr)
 				serverSocket.sendto(command, cliaddr)
 		elif type == '#':
