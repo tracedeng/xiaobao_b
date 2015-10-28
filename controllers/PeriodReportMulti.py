@@ -108,7 +108,7 @@ def gps_packet(l, cliaddr, type):
 
 			signal = (int)(signal) * 2 - 113
 			position = json.JSONEncoder().encode({"lac":lac, "cellid":cellid, 'signal':signal})
-			params = {'skey': '', 'opcode': '50', 'type': '$', 'gprsId': imei, 'deviceTime': time, 'seq' : seq, 'motionIndex': motionIndex, 'battery': battery, 'position': position, 'trans' : 1, 'cliaddr':addr}
+			params = {'skey': '', 'opcode': '50', 'type': '$', 'gprsId': imei, 'deviceTime': time, 'seq' : seq, 'motionIndex': motionIndex, 'battery': battery, 'position': position, 'trans' : 1, 'cliaddr':addr, 'voltage':voltage}
 		elif type is '@':
 			#实时定位
 			[imei, time, lng, lat, lac, cellid, signal, imsi, steps, chargestate, battery, voltage] = l
@@ -130,7 +130,7 @@ def gps_packet(l, cliaddr, type):
 
 			#motionIndex = json.JSONEncoder().encode([steps])
 			motionIndex = steps
-			params = {'skey': '', 'opcode': '50', 'type': type, 'gprsId': imei, 'deviceTime': time, 'seq' : 0, 'motionIndex': motionIndex, 'battery': battery, 'position': position, 'trans' : trans, 'cliaddr':addr}
+			params = {'skey': '', 'opcode': '50', 'type': type, 'gprsId': imei, 'deviceTime': time, 'seq' : 0, 'motionIndex': motionIndex, 'battery': battery, 'position': position, 'trans' : trans, 'cliaddr':addr, 'voltage':voltage}
 		elif type is '!':
 			#每5分钟回时间给设备
 			imei = l[0]
@@ -145,7 +145,7 @@ def gps_packet(l, cliaddr, type):
 			logging.debug("imei:%s", imei)
 			if retTime == '1':
 				global serverSocket
-				command = ",".join([imei, '6', serverTime])
+				command = ",".join([imei, '6', serverTime + "\r\n"])
 				#command = ",".join(["!" + imei, '6', serverTime])
 				#import time
 				#time.sleep(60)

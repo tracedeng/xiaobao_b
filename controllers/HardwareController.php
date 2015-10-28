@@ -1071,8 +1071,18 @@ class HardwareController extends Controller
 		$position = $post["position"];
 		$motionIndex = $post["motionIndex"];
 		$deviceTime = $post["deviceTime"];
+		$voltage = $post['voltage'];
 		$battery = $post['battery'];
 		$trans = $post["trans"];
+
+		if($voltage > 4130)
+		{
+			$battery = 100;
+		}else if($voltage > 3500){
+			$battery = ($voltage - 3500)  * 100 / 630;
+		}else{
+			$battery = 0;
+		}
 
 		$position = json_decode($position, true);
 		Yii::trace($position, 'hardware\rawdata');
@@ -1175,6 +1185,7 @@ class HardwareController extends Controller
 		$ripeData->positionGeo5 = substr($positionGeo9, 0, 5);
 		$ripeData->motionIndex = $motionIndex;
 		$ripeData->battery = $battery;
+		$ripeData->voltage = $voltage;
 		$ripeData->type = $type;
 		$ripeData->seq = $seq;
 		$ripeData->lbsgps = $trans;
