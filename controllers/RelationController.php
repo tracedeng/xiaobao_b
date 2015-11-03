@@ -124,22 +124,24 @@ class RelationController extends Controller
 				$sponsorId = Account::findOne(['phoneNumber' => $post["phoneNumber"]])->id;
 				$ownerId = Account::findOne(['phoneNumber' => $post["phoneNumberB"]])->id;
 				Yii::trace($sponsorId . " " . $ownerId, 'relation\delete');
+				$this->cancelSponsor($ownerId, $sponsorId);
+				$this->cancelSponsor($sponsorId, $ownerId);
 				//找出宠物列表
-				$pets = Pet::find()->where(['ownerId'=>$ownerId, 'isDeleted'=>0, 'isBindGprs'=>1, 'sponsorOpen'=>1])->select('id')->all();
-				$petId = array();
-				foreach($pets as $pet)
-				{
-					array_push($petId, $pet->id);
-				}
-				Yii::trace($petId, 'relation\delete');
-				$sponsors = Sponsor::find()->where(['sponsorId'=>$sponsorId, 'petId'=>$petId])->all();
-				foreach($sponsors as $sponsor)
-				{
-					if(!$sponsor->delete())
-					{
-						Yii::warning('delete sponsor(' . $sponsor->petId . ' ' . $sponsorId .') error', 'relation\delete');
-					}
-				}
+				//$pets = Pet::find()->where(['ownerId'=>$ownerId, 'isDeleted'=>0, 'isBindGprs'=>1, 'sponsorOpen'=>1])->select('id')->all();
+				//$petId = array();
+				//foreach($pets as $pet)
+				//{
+				//	array_push($petId, $pet->id);
+				//}
+				//Yii::trace($petId, 'relation\delete');
+				//$sponsors = Sponsor::find()->where(['sponsorId'=>$sponsorId, 'petId'=>$petId])->all();
+				//foreach($sponsors as $sponsor)
+				//{
+				//	if(!$sponsor->delete())
+				//	{
+				//		Yii::warning('delete sponsor(' . $sponsor->petId . ' ' . $sponsorId .') error', 'relation\delete');
+				//	}
+				//}
 
 	        	return json_encode(array("errcode"=>0, "errmsg"=>"delete a relation succeed", "relation"=>$relation->attributes));
 			}else{
@@ -149,6 +151,26 @@ class RelationController extends Controller
 		}else{
 			Yii::trace($relation->getErrors(), 'relation\delete');
 			return json_encode(array("errcode"=>20602, "errmsg"=>"call delete failed when delete a relation"));
+		}
+	}
+
+	private function cancelSponsor($ownerId, $sponsorId)
+	{
+		//找出宠物列表
+		$pets = Pet::find()->where(['ownerId'=>$ownerId, 'isDeleted'=>0, 'isBindGprs'=>1, 'sponsorOpen'=>1])->select('id')->all();
+		$petId = array();
+		foreach($pets as $pet)
+		{
+			array_push($petId, $pet->id);
+		}
+		Yii::trace($petId, 'relation\delete');
+		$sponsors = Sponsor::find()->where(['sponsorId'=>$sponsorId, 'petId'=>$petId])->all();
+		foreach($sponsors as $sponsor)
+		{
+			if(!$sponsor->delete())
+			{
+				Yii::warning('delete sponsor(' . $sponsor->petId . ' ' . $sponsorId .') error', 'relation\delete');
+			}
 		}
 	}
 

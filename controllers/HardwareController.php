@@ -381,10 +381,11 @@ class HardwareController extends Controller
 			#$position = Snapshot::findBySql($sql)->asArray()->one();
 	    	$conditionex = ['<', 'time', 'now()'];
 			//time() - 60 * 2; 
-			if($post["lbsgps"] == "1")
-				$position = Snapshot::find()->where(['gprsId'=>$pet["gprsId"], 'closed'=>0, 'seq'=>0, 'lbsgps'=>2])->andWhere(['>', 'time', date("YmdHis", time() - 90)])->andWhere(['<', 'time', date("YmdHis", time())])->select('position, time, battery, lbsgps')->asArray()->one();
-			else
-				$position = Snapshot::find()->where(['gprsId'=>$pet["gprsId"], 'closed'=>0, 'seq'=>0])->andWhere(['>', 'time', date("YmdHis", time() - 2 * 90)])->andWhere(['<', 'time', date("YmdHis", time())])->select('position, time, battery, lbsgps')->asArray()->one();
+			//if($post["lbsgps"] == "1")
+			//	$position = Snapshot::find()->where(['gprsId'=>$pet["gprsId"], 'closed'=>0, 'seq'=>0, 'lbsgps'=>2])->andWhere(['>', 'time', date("YmdHis", time() - 90)])->andWhere(['<', 'time', date("YmdHis", time())])->select('position, time, battery, lbsgps')->asArray()->one();
+			//else
+				$position = Snapshot::find()->where(['gprsId'=>$pet["gprsId"], 'closed'=>0, 'seq'=>0])->andWhere(['>', 'time', date("YmdHis", time() - 40)])->andWhere(['<', 'time', date("YmdHis", time())])->select('position, time, battery, lbsgps')->asArray()->one();
+				//$position = Snapshot::find()->where(['gprsId'=>$pet["gprsId"], 'closed'=>0, 'seq'=>0])->andWhere(['>', 'time', date("YmdHis", time() - 2 * 90)])->andWhere(['<', 'time', date("YmdHis", time())])->select('position, time, battery, lbsgps')->asArray()->one();
 			//$position = Snapshot::find()->where(['gprsId'=>$pet["gprsId"], 'closed'=>0, 'seq'=>0])->andWhere(['>', 'time', date("YmdHis", time() - 2 * 60)])->andWhere(['<', 'time', date("YmdHis", time())])->select('position, time, battery, baiduMap')->asArray()->one();
 		}else{
 			$position = Snapshot::find()->where(['gprsId'=>$pet["gprsId"], 'closed'=>0])->select('position, time, battery, lbsgps')->asArray()->one();
@@ -757,7 +758,7 @@ class HardwareController extends Controller
 		$maxseq = 0;
 		foreach($motion as $item)
 		{
-			$result[$item["seq"]] = $item["motionIndex"];
+			$result[$item["seq"]] = $item["motionIndex"] > 2400 ? 2400 : $item["motionIndex"];
 			$dayTotal += $item["motionIndex"];
 			if($max < $item["motionIndex"])
 				$max = $item["motionIndex"];
@@ -765,8 +766,10 @@ class HardwareController extends Controller
 				$maxseq = $item["seq"];
 		}
 		$result["total"] = $dayTotal;
-		$result["max"] = $max * 1.3;
-		$result["min"] = $max / 50;
+		//$result["max"] = $max * 1.3;
+		//$result["min"] = $max / 50;
+		$result["max"] = 3000;
+		$result["min"] = 25;
 		$result["maxSeq"] = $maxseq;
 		$result["k"] = $k;
 

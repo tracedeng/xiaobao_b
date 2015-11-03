@@ -1,11 +1,11 @@
 <?php
 
 // Put your device token here (without spaces):
-$deviceToken = '41326e4f90b8aa1ea0ea5c0dc75a274509cfc56d146b019cb44ece868702cf9a';
+$deviceToken = 'c87cd6647bc14d66d5de30fddbb1b7d840d415db33df00c506a92b61c995cebd';
 
 
 // Put your private key's passphrase here:密语
-$passphrase = "123456";
+$passphrase = "Qiuwei2015";
 
 // Put your alert message here:
 $message = "This is a message from xiaobao";

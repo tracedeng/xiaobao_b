@@ -132,7 +132,7 @@ class SnsController extends Controller{
         }
         if($who == "myfriend"){
             if($friend_result){
-               $where = " WHERE `deleted`=0 AND ".implode(" OR ", $myfriend_number); 
+               $where = " WHERE `deleted`=0 AND (".implode(" OR ", $myfriend_number) . ")"; 
             }
         }
         if($who == "the"){

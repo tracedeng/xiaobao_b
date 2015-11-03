@@ -22,7 +22,7 @@ class ApnsController extends Controller
 		$post = $_POST ? $_POST : json_decode(Yii::$app->request->getRawBody(), true);
 		Yii::trace($post, 'apns\operation');
 		$account->attributes = $post;
-		$account->skey = $post["skey"];
+		$account->skey = isset($post["skey"]) ? $post["skey"] : "";
 		Yii::trace($account->attributes, 'apns\operation');
 		
 		$opcode = $post["opcode"];
@@ -209,7 +209,8 @@ class ApnsController extends Controller
 		// 推送消息编码成二进制
 		$msg = chr(0) . pack('n', 32) . pack('H*', $deviceToken) . pack('n', strlen($payload)) . $payload;
 
-		$passphrase = "123456";
+		$passphrase = "Qiuwei2015";
+		//$passphrase = "123456";
 		$ckpem = "/media/basic/controllers/ck.pem";
 
 		// 连接apns服务器

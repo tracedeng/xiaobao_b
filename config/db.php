@@ -5,5 +5,5 @@ return [
     'dsn' => 'mysql:host=localhost;dbname=xiaobao',
     'username' => 'root',
     'password' => 'xiaobao',
-    'charset' => 'utf8',
+    'charset' => 'utf8mb4',
 ];

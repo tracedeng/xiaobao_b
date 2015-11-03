@@ -167,6 +167,9 @@ class UserController extends Controller
 				case 14:
 					//修改地理位置
 					return $this->location($post);
+				case 20:
+					//举报
+					return $this->report($post);
 				default:
 					//不支持的操作，不回包
 					break;
@@ -400,6 +403,11 @@ class UserController extends Controller
 			Yii::trace($account->getErrors(), 'material\location');
 			return json_encode(array("errcode"=>20602, "errmsg"=>"call save failed when modify location"));
 		}
+	}
+
+	public function report($post)
+	{
+	    return json_encode(array("errcode"=>0, "errmsg"=>"report succeed"));
 	}
 
 	public function introduce($post)
