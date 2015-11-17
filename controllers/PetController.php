@@ -687,7 +687,7 @@ class PetController extends Controller
 
 		$pet = Pet::findOne($id);
 		$pet->isDeleted = true;
-		$pet->isBindGprs = true;
+		$pet->isBindGprs = false;
 		Yii::trace($pet, 'pet\delete');
 		if($pet->save())
 		{
